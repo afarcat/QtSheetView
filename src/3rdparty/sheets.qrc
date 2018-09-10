@@ -1,0 +1,54 @@
+﻿<RCC>
+    <qresource prefix="/">
+        <file compress="6" threshold="3">sheets/functions/bitops.xml</file>
+        <file compress="6" threshold="3">sheets/functions/conversion.xml</file>
+        <file compress="6" threshold="3">sheets/functions/database.xml</file>
+        <file compress="6" threshold="3">sheets/functions/datetime.xml</file>
+        <file compress="6" threshold="3">sheets/functions/engineering.xml</file>
+        <file compress="6" threshold="3">sheets/functions/financial.xml</file>
+        <file compress="6" threshold="3">sheets/functions/information.xml</file>
+        <file compress="6" threshold="3">sheets/functions/logic.xml</file>
+        <file compress="6" threshold="3">sheets/functions/math.xml</file>
+        <file compress="6" threshold="3">sheets/functions/reference.xml</file>
+        <file compress="6" threshold="3">sheets/functions/statistical.xml</file>
+        <file compress="6" threshold="3">sheets/functions/text.xml</file>
+        <file compress="6" threshold="3">sheets/functions/trig.xml</file>
+        <file>resources/images/insert-math-expression.svg</file>
+        <file>resources/images/dialog-cancel.svg</file>
+        <file>resources/images/dialog-ok.svg</file>
+        <file>resources/images/edit-redo.svg</file>
+        <file>resources/images/edit-undo.svg</file>
+        <file>resources/images/edit-copy.svg</file>
+        <file>resources/images/edit-cut.svg</file>
+        <file>resources/images/edit-paste.svg</file>
+        <file>resources/images/cell-style.svg</file>
+        <file>resources/images/format-align-vertical-bottom.svg</file>
+        <file>resources/images/format-align-vertical-center.svg</file>
+        <file>resources/images/format-align-vertical-top.svg</file>
+        <file>resources/images/format-border-set-all.svg</file>
+        <file>resources/images/format-border-set-bottom.svg</file>
+        <file>resources/images/format-border-set-diagonal-bl-tr.svg</file>
+        <file>resources/images/format-border-set-diagonal-tl-br.svg</file>
+        <file>resources/images/format-border-set-external.svg</file>
+        <file>resources/images/format-border-set-internal.svg</file>
+        <file>resources/images/format-border-set-internal-horizontal.svg</file>
+        <file>resources/images/format-border-set-internal-vertical.svg</file>
+        <file>resources/images/format-border-set-left.svg</file>
+        <file>resources/images/format-border-set-none.svg</file>
+        <file>resources/images/format-border-set-right.svg</file>
+        <file>resources/images/format-border-set-top.svg</file>
+        <file>resources/images/format-justify-center.svg</file>
+        <file>resources/images/format-justify-left.svg</file>
+        <file>resources/images/format-justify-right.svg</file>
+        <file>resources/images/mergecell.svg</file>
+        <file>resources/images/mergecell-horizontal.svg</file>
+        <file>resources/images/mergecell-vertical.svg</file>
+        <file>resources/images/dissociatecell.svg</file>
+        <file>resources/images/edit-table-delete-column.svg</file>
+        <file>resources/images/edit-table-delete-row.svg</file>
+        <file>resources/images/edit-table-insert-column-left.svg</file>
+        <file>resources/images/edit-table-insert-row-above.svg</file>
+        <file>resources/images/document-open.svg</file>
+        <file>resources/images/document-save.svg</file>
+    </qresource>
+</RCC>
