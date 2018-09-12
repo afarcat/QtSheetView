@@ -36,10 +36,13 @@
 #ifdef ENABLE_GUI
 //#include "dialogs/FindDialog.h"
 #endif
+#ifdef QT_WIDGETS_LIB
 #include "dialogs/FormulaDialog.h"
 
 // Qt
 #include <QAction>
+#endif
+
 #include <QHash>
 
 class KUndo2Command;
@@ -66,7 +69,9 @@ public:
     Calligra::Sheets::ExternalEditor* externalEditor;
     // Insert special character dialog
     CharacterSelectDialog* specialCharDialog;
+#ifdef QT_WIDGETS_LIB
     QPointer<FormulaDialog> formulaDialog;
+#endif
     // Actions with extended names for the popup menu
     QHash<QString, QAction*> popupMenuActions;
     // Initialization flag.

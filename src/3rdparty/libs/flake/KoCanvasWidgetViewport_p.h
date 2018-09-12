@@ -1,4 +1,4 @@
-/* This file is part of the KDE project
+﻿/* This file is part of the KDE project
  * Copyright (C) 2006-2007 Thomas Zander <zander@kde.org>
  * Copyright (C) 2007-2010 Boudewijn Rempt <boud@valdyas.org>
  *
@@ -23,7 +23,9 @@
 
 #include "KoCanvasWidget.h"
 
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#endif
 
 class Viewport;
 

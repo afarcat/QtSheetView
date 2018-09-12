@@ -46,10 +46,13 @@
 
 // Qt
 #include <QGuiApplication>
-#include <QLabel>
 #include <QPainter>
 #include <QTextLayout>
+
+#ifdef QT_WIDGETS_LIB
+#include <QLabel>
 #include <QToolTip>
+#endif
 
 // KF5
 //AFA #include <KLocalizedString>
@@ -96,6 +99,11 @@ RowHeader::RowHeader(CanvasBase *_canvas)
 
 RowHeader::~RowHeader()
 {
+}
+
+void RowHeader::setCanvas(CanvasBase *canvasBase)
+{
+    m_pCanvas = canvasBase;
 }
 
 void RowHeader::mousePress(KoPointerEvent * _ev)
@@ -188,8 +196,10 @@ void RowHeader::mouseRelease(KoPointerEvent * _ev)
     if (!m_cellToolIsActive)
         return;
     m_pCanvas->disableAutoScroll();
+#ifdef QT_WIDGETS_LIB
     if (m_lSize)
         m_lSize->hide();
+#endif
 
     m_bMousePressed = false;
 
@@ -537,6 +547,11 @@ ColumnHeader::~ColumnHeader()
 {
 }
 
+void ColumnHeader::setCanvas(CanvasBase *canvasBase)
+{
+    m_pCanvas = canvasBase;
+}
+
 void ColumnHeader::mousePress(KoPointerEvent * _ev)
 {
     if (!m_cellToolIsActive)
@@ -679,8 +694,10 @@ void ColumnHeader::mouseRelease(KoPointerEvent * _ev)
     if (!m_cellToolIsActive)
         return;
     m_pCanvas->disableAutoScroll();
+#ifdef QT_WIDGETS_LIB
     if (m_lSize)
         m_lSize->hide();
+#endif
 
     m_bMousePressed = false;
 
@@ -1110,6 +1127,11 @@ SelectAllButton::SelectAllButton(CanvasBase* canvasBase)
 
 SelectAllButton::~SelectAllButton()
 {
+}
+
+void SelectAllButton::setCanvas(CanvasBase *canvasBase)
+{
+    m_canvasBase = canvasBase;
 }
 
 void SelectAllButton::paint(QPainter* painter, const QRectF& painterRect)

@@ -33,12 +33,15 @@
 #include <QResizeEvent>
 #include <QString>
 #include <QStringList>
-#include <QStyle>
 #include <QTimer>
-#include <QToolButton>
-#include <QWidget>
 #include <QWheelEvent>
 #include <QFontDatabase>
+
+#ifdef QT_WIDGETS_LIB
+#include <QStyle>
+#include <QToolButton>
+#include <QWidget>
+#endif
 
 // TODO
 // improvement possibilities

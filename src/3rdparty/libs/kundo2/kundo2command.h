@@ -1,6 +1,11 @@
 ﻿//AFA #include <kundo2stack.h>
 
+#ifdef QT_WIDGETS_LIB
 #include <QUndoStack>
+#else
+#include "kundostack.h"
+#endif
+
 #define KUndo2Command       QUndoCommand
 #define KUndo2Stack         QUndoStack
 #define KUndo2MagicString   QString

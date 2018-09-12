@@ -79,9 +79,12 @@
 
 // Qt
 #include <QGuiApplication>
-#include <QGridLayout>
 #include <QPainter>
+
+#ifdef QT_WIDGETS_LIB
+#include <QGridLayout>
 #include <QToolButton>
+#endif
 
 #define KSelectAction QAction
 #define KToggleAction QAction
@@ -1262,7 +1265,9 @@ void CellToolBase::Private::createPopupMenuActions()
 
     for (int i = 1; i <= 7; ++i) {
         action = new QAction(q);
+#ifdef QT_WIDGETS_LIB
         action->setSeparator(true);
+#endif
         popupMenuActions.insert(QString("separator%1").arg(i), action);
     }
 

@@ -20,7 +20,9 @@
 #ifndef CALLIGRA_SHEETS_HEADERS
 #define CALLIGRA_SHEETS_HEADERS
 
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#endif
 
 #include "sheets_common_export.h"
 
@@ -42,6 +44,8 @@ class CALLIGRA_SHEETS_COMMON_EXPORT ColumnHeader
 public:
     explicit ColumnHeader(CanvasBase *_canvas);
     virtual ~ColumnHeader();
+
+    void setCanvas(CanvasBase* canvasBase); //AFA
 
     int markerColumn() const {
         return  m_iSelectionAnchor;
@@ -136,6 +140,8 @@ public:
     explicit RowHeader(CanvasBase *_canvas);
     virtual ~RowHeader();
 
+    void setCanvas(CanvasBase* canvasBase); //AFA
+
     int markerRow() const {
         return  m_iSelectionAnchor;
     }
@@ -197,6 +203,8 @@ class SelectAllButton
 public:
     explicit SelectAllButton(CanvasBase* canvasBase);
     virtual ~SelectAllButton();
+
+    void setCanvas(CanvasBase* canvasBase); //AFA
 
     virtual QPalette palette() const = 0;
     virtual void update() = 0;

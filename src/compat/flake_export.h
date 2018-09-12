@@ -7,3 +7,7 @@
 #endif
 
 #define i18n QObject::tr
+
+#ifndef QT_WIDGETS_LIB
+#include <sheetqml_ui.h>
+#endif

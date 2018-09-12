@@ -1,4 +1,4 @@
-/* This file is part of the KDE project
+﻿/* This file is part of the KDE project
    Copyright 1999-2006 The KSpread Team <calligra-devel@kde.org>
 
    This library is free software; you can redistribute it and/or

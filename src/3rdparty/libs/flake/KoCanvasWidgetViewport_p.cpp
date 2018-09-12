@@ -55,25 +55,31 @@ Viewport::Viewport(KoCanvasWidget *parent)
         , m_documentOffset(QPoint(0, 0))
         , m_margin(0)
 {
+#ifdef QT_WIDGETS_LIB
     setAutoFillBackground(true);
     setAcceptDrops(true);
     setMouseTracking(true);
+#endif
     m_parent = parent;
 }
 
 void Viewport::setCanvas(QWidget *canvas)
 {
     if (m_canvas) {
+#ifdef QT_WIDGETS_LIB
         m_canvas->hide();
+#endif
         delete m_canvas;
     }
     m_canvas = canvas;
     if (!canvas) return;
     m_canvas->setParent(this);
+#ifdef QT_WIDGETS_LIB
     m_canvas->show();
     if (!m_canvas->minimumSize().isNull()) {
         m_documentSize = m_canvas->minimumSize();
     }
+#endif
     resetLayout();
 }
 
@@ -297,7 +303,7 @@ void Viewport::handlePaintEvent(QPainter &painter, QPaintEvent *event)
 void Viewport::resetLayout()
 {
     // Determine the area we have to show
-    QRect viewRect(m_documentOffset, size());
+    QRectF viewRect(m_documentOffset, size());
 
     const int viewH = viewRect.height();
     const int viewW = viewRect.width();
@@ -373,10 +379,12 @@ void Viewport::resetLayout()
             geom = QRect(0, 0, viewW, viewH);
         else
             geom = QRect(moveX, moveY, resizeW, resizeH);
+#ifdef QT_WIDGETS_LIB
         if (m_canvas->geometry() != geom) {
             m_canvas->setGeometry(geom);
             m_canvas->update();
         }
+#endif
     }
     if (m_drawShadow) {
         update();

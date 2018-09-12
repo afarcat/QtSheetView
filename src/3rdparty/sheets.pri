@@ -37,8 +37,6 @@ HEADERS += \
     $$PWD/sheets/database/DatabaseManager.h \
     $$PWD/sheets/database/DatabaseStorage.h \
     $$PWD/sheets/database/Filter.h \
-    $$PWD/sheets/dialogs/FormulaDialog.h \
-    $$PWD/sheets/dialogs/LayoutDialog.h \
     $$PWD/sheets/functions/BitOpsModule.h \
     $$PWD/sheets/functions/ConversionModule.h \
     $$PWD/sheets/functions/DatabaseModule.h \
@@ -62,24 +60,19 @@ HEADERS += \
     $$PWD/sheets/part/Doc.h \
     $$PWD/sheets/part/Headers.h \
     $$PWD/sheets/part/HeaderWidgets.h \
-    $$PWD/sheets/part/TabBar.h \
     $$PWD/sheets/part/ToolRegistry.h \
     $$PWD/sheets/part/View.h \
     $$PWD/sheets/ui/AbstractSelectionStrategy.h \
     $$PWD/sheets/ui/AutoFillStrategy.h \
     $$PWD/sheets/ui/CellEditor.h \
     $$PWD/sheets/ui/CellEditorBase.h \
-    $$PWD/sheets/ui/CellEditorWidget.h \
-    $$PWD/sheets/ui/CellToolBar.h \
     $$PWD/sheets/ui/CellToolBase.h \
     $$PWD/sheets/ui/CellToolBase_p.h \
     $$PWD/sheets/ui/CellView.h \
     $$PWD/sheets/ui/DragAndDropStrategy.h \
     $$PWD/sheets/ui/ExternalEditor.h \
     $$PWD/sheets/ui/FormulaEditorHighlighter.h \
-    $$PWD/sheets/ui/FunctionCompletion.h \
     $$PWD/sheets/ui/HyperlinkStrategy.h \
-    $$PWD/sheets/ui/LocationComboBox.h \
     $$PWD/sheets/ui/MergeStrategy.h \
     $$PWD/sheets/ui/PasteStrategy.h \
     $$PWD/sheets/ui/Selection.h \
@@ -169,8 +162,6 @@ SOURCES += \
     $$PWD/sheets/database/DatabaseManager.cpp \
     $$PWD/sheets/database/DatabaseStorage.cpp \
     $$PWD/sheets/database/Filter.cpp \
-    $$PWD/sheets/dialogs/FormulaDialog.cpp \
-    $$PWD/sheets/dialogs/LayoutDialog.cpp \
     $$PWD/sheets/functions/bitops.cpp \
     $$PWD/sheets/functions/conversion.cpp \
     $$PWD/sheets/functions/databaseFunc.cpp \
@@ -195,24 +186,19 @@ SOURCES += \
     $$PWD/sheets/part/Doc.cpp \
     $$PWD/sheets/part/Headers.cpp \
     $$PWD/sheets/part/HeaderWidgets.cpp \
-    $$PWD/sheets/part/TabBar.cpp \
     $$PWD/sheets/part/ToolRegistry.cpp \
     $$PWD/sheets/part/View.cpp \
     $$PWD/sheets/ui/AbstractSelectionStrategy.cpp \
     $$PWD/sheets/ui/AutoFillStrategy.cpp \
     $$PWD/sheets/ui/CellEditor.cpp \
     $$PWD/sheets/ui/CellEditorBase.cpp \
-    $$PWD/sheets/ui/CellEditorWidget.cpp \
-    $$PWD/sheets/ui/CellToolBar.cpp \
     $$PWD/sheets/ui/CellToolBase.cpp \
     $$PWD/sheets/ui/CellToolBase_p.cpp \
     $$PWD/sheets/ui/CellView.cpp \
     $$PWD/sheets/ui/DragAndDropStrategy.cpp \
     $$PWD/sheets/ui/ExternalEditor.cpp \
     $$PWD/sheets/ui/FormulaEditorHighlighter.cpp \
-    $$PWD/sheets/ui/FunctionCompletion.cpp \
     $$PWD/sheets/ui/HyperlinkStrategy.cpp \
-    $$PWD/sheets/ui/LocationComboBox.cpp \
     $$PWD/sheets/ui/MergeStrategy.cpp \
     $$PWD/sheets/ui/PasteStrategy.cpp \
     $$PWD/sheets/ui/Selection.cpp \
@@ -264,6 +250,26 @@ SOURCES += \
     $$PWD/sheets/ValueConverter.cpp \
     $$PWD/sheets/ValueFormatter.cpp \
     $$PWD/sheets/ValueParser.cpp
+
+ENABLE_WIDGETS {
+HEADERS += \
+    $$PWD/sheets/dialogs/FormulaDialog.h \
+    $$PWD/sheets/dialogs/LayoutDialog.h \
+    $$PWD/sheets/part/TabBar.h \
+    $$PWD/sheets/ui/CellEditorWidget.h \
+    $$PWD/sheets/ui/CellToolBar.h \
+    $$PWD/sheets/ui/FunctionCompletion.h \
+    $$PWD/sheets/ui/LocationComboBox.h
+
+SOURCES += \
+    $$PWD/sheets/dialogs/FormulaDialog.cpp \
+    $$PWD/sheets/dialogs/LayoutDialog.cpp \
+    $$PWD/sheets/part/TabBar.cpp \
+    $$PWD/sheets/ui/CellEditorWidget.cpp \
+    $$PWD/sheets/ui/CellToolBar.cpp \
+    $$PWD/sheets/ui/FunctionCompletion.cpp \
+    $$PWD/sheets/ui/LocationComboBox.cpp
+}
 
 ENABLE_BINDING {
 HEADERS += \

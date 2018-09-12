@@ -8,6 +8,8 @@ TEMPLATE = lib
 QT += core gui xml sql printsupport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+CONFIG += ENABLE_WIDGETS
+
 DESTDIR = ../../bin
 
 include (../src.pri)

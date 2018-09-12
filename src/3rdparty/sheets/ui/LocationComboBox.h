@@ -24,7 +24,9 @@
 
 #include <QPointer>
 
-#include <qcombobox.h>
+#ifdef QT_WIDGETS_LIB
+#include <QComboBox>
+#endif
 #define KComboBox QComboBox
 
 #include "sheets_common_export.h"

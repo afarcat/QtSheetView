@@ -21,7 +21,11 @@
 #ifndef CALLIGRA_SHEETS_CELL_EDITOR_WIDGET
 #define CALLIGRA_SHEETS_CELL_EDITOR_WIDGET
 
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#else
+#include <sheetqml_ui.h>
+#endif
 
 namespace Calligra
 {

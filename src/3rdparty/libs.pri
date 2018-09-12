@@ -80,3 +80,14 @@ SOURCES += \
     $$PWD/libs/widgets/KoDpi.cpp \
     $$PWD/libs/widgets/KoZoomHandler.cpp \
     $$PWD/libs/widgets/KoZoomMode.cpp
+
+ENABLE_WIDGETS {
+}
+else {
+HEADERS += \
+    $$PWD/libs/kundo2/kundostack.h \
+    $$PWD/libs/kundo2/kundostack_p.h
+
+SOURCES += \
+    $$PWD/libs/kundo2/kundostack.cpp
+}

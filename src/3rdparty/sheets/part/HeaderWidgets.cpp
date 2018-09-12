@@ -45,14 +45,17 @@
 
 // Qt
 #include <QGuiApplication>
+#include <QPainter>
+#include <QTextLayout>
+
+#ifdef QT_WIDGETS_LIB
 #include <QDesktopWidget>
 #include <QLabel>
-#include <QPainter>
 #include <QRubberBand>
 #include <QStyle>
-#include <QTextLayout>
 #include <QToolTip>
 #include <QScrollBar>
+#endif
 
 // KF5
 //AFA #include <KLocalizedString>
@@ -86,19 +89,30 @@ using namespace Calligra::Sheets;
  * RowHeaderWidget
  *
  ****************************************************************/
-
+#ifdef QT_WIDGETS_LIB
 RowHeaderWidget::RowHeaderWidget(QWidget *_parent, Canvas *_canvas, View *_view)
         : QWidget(_parent), RowHeader(_canvas), m_rubberband(0)
 {
+#ifdef QT_WIDGETS_LIB
     setAttribute(Qt::WA_StaticContents);
     setMouseTracking(true);
+#endif
 
     connect(_view, SIGNAL(autoScroll(QPoint)),
             this, SLOT(slotAutoScroll(QPoint)));
     connect(m_pCanvas->toolProxy(), SIGNAL(toolChanged(QString)),
             this, SLOT(toolChanged(QString)));
 }
-
+#else
+RowHeaderWidget::RowHeaderWidget(QWidget *parent)
+    : QQuickPaintedItem(parent), RowHeader(nullptr), m_rubberband(0)
+{
+    setAcceptHoverEvents(true);
+    setAcceptedMouseButtons(Qt::AllButtons);
+    setFlag(ItemAcceptsInputMethod, true);
+    setFlag(ItemHasContents, true);
+}
+#endif
 
 RowHeaderWidget::~RowHeaderWidget()
 {
@@ -160,7 +174,7 @@ void RowHeaderWidget::paintSizeIndicator(int mouseY)
         return;
 
     m_iResizePos = mouseY;
-
+#ifdef QT_WIDGETS_LIB
     // Don't make the row have a height < 2 pixel.
     double y = m_pCanvas->zoomHandler()->zoomItY(sheet->rowPosition(m_iResizedRow) - m_pCanvas->yOffset());
     if (m_iResizePos < y + 2)
@@ -199,6 +213,7 @@ void RowHeaderWidget::paintSizeIndicator(int mouseY)
     pos -= QPoint(0, m_lSize->height());
     m_lSize->move(m_pCanvas->mapToGlobal(pos).x(), m_pCanvas->mapToGlobal(pos).y());
     m_lSize->show();
+#endif
 }
 
 void RowHeaderWidget::removeSizeIndicator()
@@ -215,13 +230,26 @@ void RowHeaderWidget::updateRows(int from, int to)
 
     double y0 = m_pCanvas->zoomHandler()->zoomItY(sheet->rowPosition(from));
     double y1 = m_pCanvas->zoomHandler()->zoomItY(sheet->rowPosition(to + 1));
+#ifdef QT_WIDGETS_LIB
     QWidget::update(0, (int) y0, QWidget::width(), (int)(y1 - y0));
+#else
+    QQuickPaintedItem::update(QRect(0, (int) y0, QWidget::width(), (int)(y1 - y0)));
+#endif
 }
+
+#ifndef QT_WIDGETS_LIB
+void RowHeaderWidget::paint(QPainter *painter)
+{
+    RowHeader::paint(painter, boundingRect().toRect());
+}
+#endif
 
 void RowHeaderWidget::paintEvent(QPaintEvent* event)
 {
+#ifdef QT_WIDGETS_LIB
     QPainter painter(this);
     paint(&painter, event->rect());
+#endif
 }
 
 
@@ -229,6 +257,14 @@ void RowHeaderWidget::focusOutEvent(QFocusEvent * _ev)
 {
     focusOut(_ev);
 }
+
+#ifndef QT_WIDGETS_LIB
+void RowHeaderWidget::hoverMoveEvent(QHoverEvent *event)
+{
+    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    mouseMoveEvent(&mouseEvent);
+}
+#endif
 
 void RowHeaderWidget::toolChanged(const QString& toolId)
 {
@@ -240,19 +276,30 @@ void RowHeaderWidget::toolChanged(const QString& toolId)
  * ColumnHeaderWidget
  *
  ****************************************************************/
-
+#ifdef QT_WIDGETS_LIB
 ColumnHeaderWidget::ColumnHeaderWidget(QWidget *_parent, Canvas *_canvas, View *_view)
         : QWidget(_parent), ColumnHeader(_canvas), m_rubberband(0)
 {
+#ifdef QT_WIDGETS_LIB
     setAttribute(Qt::WA_StaticContents);
     setMouseTracking(true);
+#endif
 
     connect(_view, SIGNAL(autoScroll(QPoint)),
             this, SLOT(slotAutoScroll(QPoint)));
     connect(m_pCanvas->toolProxy(), SIGNAL(toolChanged(QString)),
             this, SLOT(toolChanged(QString)));
 }
-
+#else
+ColumnHeaderWidget::ColumnHeaderWidget(QWidget *parent)
+    : QQuickPaintedItem(parent), ColumnHeader(nullptr), m_rubberband(0)
+{
+    setAcceptHoverEvents(true);
+    setAcceptedMouseButtons(Qt::AllButtons);
+    setFlag(ItemAcceptsInputMethod, true);
+    setFlag(ItemHasContents, true);
+}
+#endif
 
 ColumnHeaderWidget::~ColumnHeaderWidget()
 {
@@ -325,7 +372,7 @@ void ColumnHeaderWidget::paintSizeIndicator(int mouseX)
 
     // Don't make the column have a width < 2 pixels.
     double x = m_pCanvas->zoomHandler()->zoomItX(sheet->columnPosition(m_iResizedColumn) - m_pCanvas->xOffset());
-
+#ifdef QT_WIDGETS_LIB
     if (sheet->layoutDirection() == Qt::RightToLeft) {
         x = m_pCanvas->width() - x;
 
@@ -369,6 +416,7 @@ void ColumnHeaderWidget::paintSizeIndicator(int mouseX)
     pos -= QPoint(0, m_lSize->height());
     m_lSize->move(m_pCanvas->mapToGlobal(pos).x(), mapToGlobal(pos).y());
     m_lSize->show();
+#endif
 }
 
 void ColumnHeaderWidget::removeSizeIndicator()
@@ -385,13 +433,26 @@ void ColumnHeaderWidget::updateColumns(int from, int to)
 
     double x0 = m_pCanvas->zoomHandler()->zoomItX(sheet->columnPosition(from));
     double x1 = m_pCanvas->zoomHandler()->zoomItX(sheet->columnPosition(to + 1));
+#ifdef QT_WIDGETS_LIB
     QWidget::update((int) x0, 0, (int)(x1 - x0), QWidget::height());
+#else
+    QQuickPaintedItem::update(QRect((int) x0, 0, (int)(x1 - x0), QWidget::height()));
+#endif
 }
+
+#ifndef QT_WIDGETS_LIB
+void ColumnHeaderWidget::paint(QPainter *painter)
+{
+    ColumnHeader::paint(painter, boundingRect().toRect());
+}
+#endif
 
 void ColumnHeaderWidget::paintEvent(QPaintEvent* event)
 {
+#ifdef QT_WIDGETS_LIB
     QPainter painter(this);
     paint(&painter, event->rect());
+#endif
 }
 
 
@@ -399,6 +460,14 @@ void ColumnHeaderWidget::focusOutEvent(QFocusEvent * _ev)
 {
     focusOut(_ev);
 }
+
+#ifndef QT_WIDGETS_LIB
+void ColumnHeaderWidget::hoverMoveEvent(QHoverEvent *event)
+{
+    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    mouseMoveEvent(&mouseEvent);
+}
+#endif
 
 void ColumnHeaderWidget::toolChanged(const QString& toolId)
 {
@@ -411,7 +480,7 @@ void ColumnHeaderWidget::toolChanged(const QString& toolId)
  * SelectAllButtonWidget
  *
  ****************************************************************/
-
+#ifdef QT_WIDGETS_LIB
 SelectAllButtonWidget::SelectAllButtonWidget(CanvasBase* canvasBase)
         : QWidget(canvasBase->canvasWidget())
         , SelectAllButton(canvasBase)
@@ -419,15 +488,34 @@ SelectAllButtonWidget::SelectAllButtonWidget(CanvasBase* canvasBase)
     connect(canvasBase->toolProxy(), SIGNAL(toolChanged(QString)),
             this, SLOT(toolChanged(QString)));
 }
+#else
+SelectAllButtonWidget::SelectAllButtonWidget(QWidget *parent)
+    : QQuickPaintedItem(parent), SelectAllButton(nullptr)
+{
+    setAcceptHoverEvents(true);
+    setAcceptedMouseButtons(Qt::AllButtons);
+    setFlag(ItemAcceptsInputMethod, true);
+    setFlag(ItemHasContents, true);
+}
+#endif
 
 SelectAllButtonWidget::~SelectAllButtonWidget()
 {
 }
 
+#ifndef QT_WIDGETS_LIB
+void SelectAllButtonWidget::paint(QPainter *painter)
+{
+    SelectAllButton::paint(painter, boundingRect().toRect());
+}
+#endif
+
 void SelectAllButtonWidget::paintEvent(QPaintEvent* event)
 {
+#ifdef QT_WIDGETS_LIB
     QPainter painter(this);
     paint(&painter, event->rect());
+#endif
 }
 
 void SelectAllButtonWidget::mousePressEvent(QMouseEvent* _ev)

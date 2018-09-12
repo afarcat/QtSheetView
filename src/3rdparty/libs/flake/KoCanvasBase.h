@@ -44,6 +44,7 @@ class KoSnapGuide;
 class KoGuidesData;
 
 class QWidget;
+class QPainter;
 class QCursor;
 class QObject;
 class QPointF;
@@ -162,6 +163,9 @@ public:
      * @see KoDocument::unit()
      */
     virtual KoUnit unit() const = 0;
+
+    //AFA
+    virtual void paint(QPainter* painter, const QRectF& painterRect) = 0;
 
     /**
      * Called when the user tries to move the argument shape to allow the application to limit the

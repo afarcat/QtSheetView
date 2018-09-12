@@ -35,7 +35,9 @@
 #include <QFontDatabase>
 #include <QFocusEvent>
 #include <QKeyEvent>
+#ifdef QT_WIDGETS_LIB
 #include <QAction>
+#endif
 
 using namespace Calligra::Sheets;
 
@@ -57,11 +59,13 @@ ExternalEditor::ExternalEditor(QWidget *parent)
     d->highlighter = 0;
     d->isArray = false;
 
+#ifdef QT_WIDGETS_LIB
     setCurrentFont(QFontDatabase::systemFont(QFontDatabase::GeneralFont));
 
     // Try to immitate KLineEdit regarding the margins and size.
     document()->setDocumentMargin(1);
     setMinimumHeight(fontMetrics().height() + 2 * frameWidth() + 1);
+#endif
 
     connect(this, SIGNAL(textChanged()), this, SLOT(slotTextChanged()));
     connect(this, SIGNAL(cursorPositionChanged()),
@@ -86,8 +90,12 @@ ExternalEditor::~ExternalEditor()
 
 QSize ExternalEditor::sizeHint() const
 {
+#ifdef QT_WIDGETS_LIB
     return minimumSize();
     //return KTextEdit::sizeHint(); // document()->size().toSize();
+#else
+    return QSize(0, 0);
+#endif
 }
 
 void ExternalEditor::setCellTool(CellToolBase* cellTool)
@@ -154,7 +162,11 @@ void ExternalEditor::keyPressEvent(QKeyEvent *event)
     // the Enter and Esc key are handled by the embedded editor
     if ((event->key() == Qt::Key_Return) || (event->key() == Qt::Key_Enter) ||
             (event->key() == Qt::Key_Escape)) {
+#ifdef QT_WIDGETS_LIB
         d->cellTool->editor()->widget()->setFocus();
+#else
+        d->cellTool->editor()->widget()->setFocus(true);
+#endif
         QGuiApplication::sendEvent(d->cellTool->editor()->widget(), event);
         event->accept();
         return;

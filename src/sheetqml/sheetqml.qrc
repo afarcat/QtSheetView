@@ -1,0 +1,8 @@
+﻿<RCC>
+    <qresource prefix="/">
+        <file>resources/qml/QComboBox.qml</file>
+        <file>resources/qml/QTextEdit.qml</file>
+        <file>resources/qml/SheetItem.qml</file>
+        <file>resources/qml/QWidgetLogic.js</file>
+    </qresource>
+</RCC>

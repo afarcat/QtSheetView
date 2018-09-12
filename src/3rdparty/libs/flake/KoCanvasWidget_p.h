@@ -38,10 +38,12 @@
 //AFA #include <FlakeDebug.h>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QScrollBar>
 #include <QEvent>
-#include <QDockWidget>
 #include <QTimer>
+#ifdef QT_WIDGETS_LIB
+#include <QDockWidget>
+#include <QScrollBar>
+#endif
 
 //AFA #include <KoConfig.h>
 
@@ -75,7 +77,11 @@ public:
 
     KoCanvasWidget *q;
     KoCanvasBase *canvas;
+#ifdef QT_WIDGETS_LIB
     Viewport *viewportWidget;
+#else
+    QPointer<QQuickScrollView> viewport;
+#endif
     bool ignoreScrollSignals;
     bool zoomWithWheel;
     qreal vastScrollingFactor;

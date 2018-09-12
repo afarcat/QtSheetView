@@ -1,4 +1,4 @@
-/* This file is part of the KDE project
+﻿/* This file is part of the KDE project
    Copyright 2007 Stefan Nikolaus <stefan.nikolaus@kdemail.net>
 
    This library is free software; you can redistribute it and/or
@@ -26,7 +26,7 @@
 
 #include "DatabaseSource.h"
 #include "Filter.h"
-#include "FilterPopup.h"
+//AFA #include "FilterPopup.h"
 #include "Map.h"
 #include "Region.h"
 #include "odf/SheetsOdf.h"

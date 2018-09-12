@@ -37,11 +37,13 @@
 //AFA #include <FlakeDebug.h>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QScrollBar>
 #include <QEvent>
-#include <QDockWidget>
 #include <QTimer>
 #include <QPointer>
+#ifdef QT_WIDGETS_LIB
+#include <QDockWidget>
+#include <QScrollBar>
+#endif
 
 //AFA #include <KoConfig.h>
 
@@ -53,8 +55,9 @@ void KoCanvasWidget::Private::setDocumentOffset()
     // the document. The documentOffset is meant to be the value that
     // the canvas must add to the update rect in its paint event, to
     // compensate.
-
-    QPoint pt(q->horizontalScrollBar()->value(), q->verticalScrollBar()->value());
+    QPoint pt;
+#ifdef QT_WIDGETS_LIB
+    pt = QPoint(q->horizontalScrollBar()->value(), q->verticalScrollBar()->value());
     viewportWidget->documentOffsetMoved(pt);
 
     QWidget *canvasWidget = canvas->canvasWidget();
@@ -68,6 +71,9 @@ void KoCanvasWidget::Private::setDocumentOffset()
             canvasWidget->scroll(diff.x(), diff.y());
         }
     }
+#else
+    //AFA-FIXME
+#endif
 
     q->setDocumentOffset(pt);
 
@@ -78,7 +84,7 @@ void KoCanvasWidget::Private::resetScrollBars()
 {
     // The scrollbar value always points at the top-left corner of the
     // bit of image we paint.
-
+#ifdef QT_WIDGETS_LIB
     int docH = q->documentSize().height() + q->margin();
     int docW = q->documentSize().width() + q->margin();
     int drawH = viewportWidget->height();
@@ -105,7 +111,7 @@ void KoCanvasWidget::Private::resetScrollBars()
     vScroll->setSingleStep(fontheight);
     hScroll->setPageStep(drawW);
     hScroll->setSingleStep(fontheight);
-
+#endif
 }
 
 void KoCanvasWidget::Private::emitPointerPositionChangedSignals(QEvent *event)
@@ -136,12 +142,12 @@ void KoCanvasWidget::Private::emitPointerPositionChangedSignals(QEvent *event)
 
 void KoCanvasWidget::Private::activate()
 {
-    QWidget *parent = q;
-    while (parent->parentWidget()) {
-        parent = parent->parentWidget();
-    }
-
     //AFA
+    //QWidget *parent = q;
+    //while (parent->parentWidget()) {
+    //    parent = parent->parentWidget();
+    //}
+
     //KoCanvasSupervisor *observerProvider = dynamic_cast<KoCanvasSupervisor*>(parent);
     //if (!observerProvider) {
     //    return;
@@ -157,12 +163,12 @@ void KoCanvasWidget::Private::activate()
 
 void KoCanvasWidget::Private::unsetCanvas()
 {
-    QWidget *parent = q;
-    while (parent->parentWidget()) {
-        parent = parent->parentWidget();
-    }
-
     //AFA
+    //QWidget *parent = q;
+    //while (parent->parentWidget()) {
+    //    parent = parent->parentWidget();
+    //}
+
     //KoCanvasSupervisor *observerProvider = dynamic_cast<KoCanvasSupervisor*>(parent);
     //if (!observerProvider) {
     //    return;
@@ -180,6 +186,7 @@ KoCanvasWidget::KoCanvasWidget(QWidget *parent)
     : QAbstractScrollArea(parent)
     , d(new Private(this))
 {
+#ifdef QT_WIDGETS_LIB
     // We need to set this as QDeclarativeView sets them a bit differnt from QAbstractScrollArea
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
@@ -206,6 +213,12 @@ KoCanvasWidget::KoCanvasWidget(QWidget *parent)
     connect(verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(updateCanvasOffsetY()));
     connect(d->viewportWidget, SIGNAL(sizeChanged()), this, SLOT(updateCanvasOffsetX()));
     //connect(proxyObject, SIGNAL(moveDocumentOffset(QPoint)), d->viewportWidget, SLOT(documentOffsetMoved(QPoint)));
+#else
+    setAcceptHoverEvents(true);
+    setAcceptedMouseButtons(Qt::AllButtons);
+    setFlag(ItemAcceptsInputMethod, true);
+    setFlag(ItemHasContents, true);
+#endif
 }
 
 KoCanvasWidget::~KoCanvasWidget()
@@ -228,12 +241,22 @@ void KoCanvasWidget::scrollContentsBy(int dx, int dy)
 
 QSize KoCanvasWidget::viewportSize() const
 {
+#ifdef QT_WIDGETS_LIB
     return viewport()->size();
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        return QSize(flickable->contentWidth(), flickable->contentHeight());
+    }
+    return QSize();
+#endif
 }
 
 void KoCanvasWidget::setDrawShadow(bool drawShadow)
 {
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->setDrawShadow(drawShadow);
+#endif
 }
 
 void KoCanvasWidget::resizeEvent(QResizeEvent *resizeEvent)
@@ -274,16 +297,19 @@ KoCanvasBase* KoCanvasWidget::canvas() const
 
 void KoCanvasWidget::changeCanvasWidget(QWidget *widget)
 {
+#ifdef QT_WIDGETS_LIB
     if (d->viewportWidget->canvas()) {
         widget->setCursor(d->viewportWidget->canvas()->cursor());
         d->viewportWidget->canvas()->removeEventFilter(this);
     }
 
     d->viewportWidget->setCanvas(widget);
+
     setFocusProxy(d->canvas->canvasWidget());
+    widget->setMouseTracking(true);
+#endif
 
     widget->installEventFilter(this);
-    widget->setMouseTracking(true);
 }
 
 int KoCanvasWidget::visibleHeight() const
@@ -292,7 +318,7 @@ int KoCanvasWidget::visibleHeight() const
         return 0;
     QWidget *canvasWidget = canvas()->canvasWidget();
 
-    int height1;
+    int height1 = 0;
     if (canvasWidget == 0)
         height1 = viewport()->height();
     else
@@ -307,7 +333,7 @@ int KoCanvasWidget::visibleWidth() const
         return 0;
     QWidget *canvasWidget = canvas()->canvasWidget();
 
-    int width1;
+    int width1 = 0;
     if (canvasWidget == 0)
         width1 = viewport()->width();
     else
@@ -318,6 +344,7 @@ int KoCanvasWidget::visibleWidth() const
 
 int KoCanvasWidget::canvasOffsetX() const
 {
+#ifdef QT_WIDGETS_LIB
     int offset = -horizontalScrollBar()->value();
 
     if (d->canvas) {
@@ -325,10 +352,18 @@ int KoCanvasWidget::canvasOffsetX() const
     }
 
     return offset;
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        return flickable->contentX();
+    }
+    return 0;
+#endif
 }
 
 int KoCanvasWidget::canvasOffsetY() const
 {
+#ifdef QT_WIDGETS_LIB
     int offset = -verticalScrollBar()->value();
 
     if (d->canvas) {
@@ -336,6 +371,13 @@ int KoCanvasWidget::canvasOffsetY() const
     }
 
     return offset;
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        return flickable->contentY();
+    }
+    return 0;
+#endif
 }
 
 void KoCanvasWidget::updateCanvasOffsetX()
@@ -344,8 +386,16 @@ void KoCanvasWidget::updateCanvasOffsetX()
     if (d->ignoreScrollSignals)
         return;
 
+#ifdef QT_WIDGETS_LIB
     setPreferredCenterFractionX((horizontalScrollBar()->value()
                                  + viewport()->width() / 2.0) / documentSize().width());
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        setPreferredCenterFractionX((flickable->contentX()
+                                     + viewport()->width() / 2.0) / documentSize().width());
+    }
+#endif
 }
 
 void KoCanvasWidget::updateCanvasOffsetY()
@@ -354,8 +404,16 @@ void KoCanvasWidget::updateCanvasOffsetY()
     if (d->ignoreScrollSignals)
         return;
 
+#ifdef QT_WIDGETS_LIB
     setPreferredCenterFractionY((verticalScrollBar()->value()
                                  + verticalScrollBar()->pageStep() / 2.0) / documentSize().height());
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        setPreferredCenterFractionY((flickable->contentY()
+                                     + viewport()->height() / 2.0) / documentSize().height());
+    }
+#endif
 }
 
 bool KoCanvasWidget::eventFilter(QObject *watched, QEvent *event)
@@ -367,6 +425,91 @@ bool KoCanvasWidget::eventFilter(QObject *watched, QEvent *event)
     }
     return false;
 }
+
+#ifndef QT_WIDGETS_LIB
+void KoCanvasWidget::paint(QPainter *painter)
+{
+    if (d->canvas && d->canvas->canvasWidget()) {
+        d->canvas->paint(painter, boundingRect());
+    }
+}
+
+void KoCanvasWidget::hoverMoveEvent(QHoverEvent *event)
+{
+
+}
+
+void KoCanvasWidget::ensureVisible(int x, int y, int xmargin, int ymargin)
+{
+    QQuickFlickable *flickable = this->flickable();
+    if (!flickable) {
+        return;
+    }
+
+    if ((x - xmargin) < flickable->contentX()) {
+        flickable->setContentX(qMax(0, x - xmargin));
+    } else if (x > (flickable->contentX() + d->viewport->width() - xmargin)) {
+        flickable->setContentX(qMin(x - d->viewport->width() + xmargin, flickable->contentWidth()));
+    }
+
+    if ((y - ymargin) < flickable->contentY()) {
+        flickable->setContentY(qMax(0, y - ymargin));
+    } else if (y > (flickable->contentY() + d->viewport->height() - ymargin)) {
+        flickable->setContentY(qMin(y - d->viewport->height() + ymargin, flickable->contentHeight()));
+    }
+}
+
+QWidget *KoCanvasWidget::viewport() const
+{
+    return d->viewport;
+}
+
+void KoCanvasWidget::setViewport(QWidget *viewport)
+{
+    d->viewport = qobject_cast<QQuickScrollView *>(viewport);
+
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        connect(flickable, SIGNAL(contentXChanged()), this, SLOT(update()));
+        connect(flickable, SIGNAL(contentYChanged()), this, SLOT(update()));
+    }
+}
+
+QQuickFlickable *KoCanvasWidget::flickable() const
+{
+    if (!d->viewport) {
+        return nullptr;
+    }
+
+    return d->viewport->findChild<QQuickFlickable *>();
+}
+
+QQuickScrollBar *KoCanvasWidget::horizontalScrollBar() const
+{
+    if (!d->viewport) {
+        return nullptr;
+    }
+
+     QQuickScrollBarAttached *attached = d->viewport->findChild<QQuickScrollBarAttached *>();
+     if (!attached) {
+         return nullptr;
+     }
+     return attached->horizontal();
+}
+
+QQuickScrollBar *KoCanvasWidget::verticalScrollBar() const
+{
+    if (!d->viewport) {
+        return nullptr;
+    }
+
+    QQuickScrollBarAttached *attached = d->viewport->findChild<QQuickScrollBarAttached *>();
+    if (!attached) {
+        return nullptr;
+    }
+    return attached->vertical();
+}
+#endif
 
 void KoCanvasWidget::ensureVisible(KoShape *shape)
 {
@@ -418,12 +561,21 @@ void KoCanvasWidget::recenterPreferred()
     QPointF center = preferredCenter();
 
     // convert into a viewport based point
+#ifdef QT_WIDGETS_LIB
     center.rx() += d->canvas->canvasWidget()->x() + frameWidth();
     center.ry() += d->canvas->canvasWidget()->y() + frameWidth();
 
     // scroll to a new center point
     QPointF topLeft = center - 0.5 * QPointF(viewport()->width(), viewport()->height());
     setScrollBarValue(topLeft.toPoint());
+#else
+    center.rx() += d->canvas->canvasWidget()->x();
+    center.ry() += d->canvas->canvasWidget()->y();
+
+    // scroll to a new center point
+    QPointF topLeft = center - 0.5 * QPointF(viewport()->width(), viewport()->height());
+    setScrollBarValue(topLeft.toPoint());
+#endif
 
     d->ignoreScrollSignals = oldIgnoreScrollSignals;
 }
@@ -481,7 +633,14 @@ void KoCanvasWidget::updateDocumentSize(const QSize &sz, bool recalculateCenter)
     const bool oldIgnoreScrollSignals = d->ignoreScrollSignals;
     d->ignoreScrollSignals = true;
     KoCanvasWidget::setDocumentSize(sz);
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->setDocumentSize(sz);
+#else
+    if (d->viewport) {
+        d->viewport->setContentWidth(sz.width());
+        d->viewport->setContentHeight(sz.height());
+    }
+#endif
     d->resetScrollBars();
 
     // Always emit the new offset.
@@ -564,28 +723,38 @@ QPointF KoCanvasWidget::preferredCenter() const
 
 void KoCanvasWidget::paintEvent(QPaintEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     QPainter gc(viewport());
     d->viewportWidget->handlePaintEvent(gc, event);
+#endif
 }
 
 void KoCanvasWidget::dragEnterEvent(QDragEnterEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->handleDragEnterEvent(event);
+#endif
 }
 
 void KoCanvasWidget::dropEvent(QDropEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->handleDropEvent(event);
+#endif
 }
 
 void KoCanvasWidget::dragMoveEvent(QDragMoveEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->handleDragMoveEvent(event);
+#endif
 }
 
 void KoCanvasWidget::dragLeaveEvent(QDragLeaveEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     d->viewportWidget->handleDragLeaveEvent(event);
+#endif
 }
 
 void KoCanvasWidget::keyPressEvent(QKeyEvent *event)
@@ -629,8 +798,10 @@ int KoCanvasWidget::margin() const
 void KoCanvasWidget::setMargin(int margin)
 {
     d->margin = margin;
+#ifdef QT_WIDGETS_LIB
     Q_ASSERT(d->viewportWidget);
     d->viewportWidget->setMargin(margin);
+#endif
 }
 
 void KoCanvasWidget::setCanvasMode(KoCanvasWidget::CanvasMode mode)
@@ -660,19 +831,35 @@ KoCanvasWidget::CanvasMode KoCanvasWidget::canvasMode() const
 
 QPoint KoCanvasWidget::scrollBarValue() const
 {
+#ifdef QT_WIDGETS_LIB
     QScrollBar * hBar = horizontalScrollBar();
     QScrollBar * vBar = verticalScrollBar();
 
     return QPoint(hBar->value(), vBar->value());
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        return QPoint(flickable->contentX(), flickable->contentY());
+    }
+    return QPoint();
+#endif
 }
 
 void KoCanvasWidget::setScrollBarValue(const QPoint &value)
 {
+#ifdef QT_WIDGETS_LIB
     QScrollBar * hBar = horizontalScrollBar();
     QScrollBar * vBar = verticalScrollBar();
 
     hBar->setValue(value.x());
     vBar->setValue(value.y());
+#else
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        flickable->setContentX(value.x());
+        flickable->setContentY(value.y());
+    }
+#endif
 }
 
 KoCanvasWidget::Private *KoCanvasWidget::priv()

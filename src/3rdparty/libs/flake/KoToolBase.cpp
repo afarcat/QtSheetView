@@ -33,8 +33,10 @@
 //AFA #include <klocalizedstring.h>
 //AFA #include <kactioncollection.h>
 
+#ifdef QT_WIDGETS_LIB
 #include <QAction>
 #include <QWidget>
+#endif
 #include <QFile>
 #include <QDomDocument>
 #include <QDomElement>
@@ -180,7 +182,9 @@ QVariant KoToolBase::inputMethodQuery(Qt::InputMethodQuery query, const KoViewCo
     case Qt::ImMicroFocus:
         return QRect(d->canvas->canvasWidget()->width() / 2, 0, 1, d->canvas->canvasWidget()->height());
     case Qt::ImFont:
+#ifdef QT_WIDGETS_LIB
         return d->canvas->canvasWidget()->font();
+#endif
     default:
         return QVariant();
     }

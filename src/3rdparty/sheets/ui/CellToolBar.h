@@ -6,7 +6,11 @@
 #ifndef CELLTOOLBAR_H
 #define CELLTOOLBAR_H
 
+#ifdef QT_WIDGETS_LIB
 #include <QToolBar>
+#else
+#include <sheetqml_ui.h>
+#endif
 
 namespace Calligra
 {

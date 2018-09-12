@@ -39,7 +39,7 @@
 #include "CellView.h"
 #include "Damages.h"
 #include "database/Database.h"
-#include "database/FilterPopup.h"
+//AFA #include "database/FilterPopup.h"
 #include "DragAndDropStrategy.h"
 #include "ExternalEditor.h"
 #include "HyperlinkStrategy.h"
@@ -94,7 +94,9 @@
 //#include "dialogs/GoalSeekDialog.h"
 //#include "dialogs/GotoDialog.h"
 //#include "dialogs/InsertDialog.h"
+#ifdef QT_WIDGETS_LIB
 #include "dialogs/LayoutDialog.h"
+#endif
 //#include "dialogs/LinkDialog.h"
 //#include "dialogs/ListDialog.h"
 //#include "dialogs/NamedAreaDialog.h"
@@ -133,13 +135,16 @@
 // Qt
 #include <QGuiApplication>
 #include <QStandardPaths>
-#include <QInputDialog>
 #include <QBuffer>
 #include <QHash>
-#include <QMenu>
 #include <QPainter>
 #ifndef QT_NO_SQL
 #include <QSqlDatabase>
+#endif
+
+#ifdef QT_WIDGETS_LIB
+#include <QInputDialog>
+#include <QMenu>
 #endif
 
 #ifndef NDEBUG
@@ -162,7 +167,9 @@ CellToolBase::CellToolBase(KoCanvasBase* canvas)
 {
     d->cellEditor = 0;
     d->externalEditor = 0;
+#ifdef QT_WIDGETS_LIB
     d->formulaDialog = 0;
+#endif
     d->specialCharDialog = 0;
     d->initialized = false;
     d->popupListChoose = 0;
@@ -390,12 +397,20 @@ CellToolBase::CellToolBase(KoCanvasBase* canvas)
     connect(action, SIGNAL(triggered(bool)), this, SLOT(verticalText(bool)));
     action->setToolTip(i18n("Print cell contents vertically"));
 
-    action = new QAction(QIcon::fromTheme(QGuiApplication::isRightToLeft() ? koIconName("format-indent-less") : koIconName("format-indent-more")), i18n("Increase Indent"), this);
+#ifdef QT_WIDGETS_LIB
+    action = new QAction(QIcon/*AFA ::fromTheme*/(QGuiApplication::isRightToLeft() ? koIconName("format-indent-less") : koIconName("format-indent-more")), i18n("Increase Indent"), this);
+#else
+    action = new QAction(/*AFA QIcon::fromTheme*/(QGuiApplication::isRightToLeft() ? koIconName("format-indent-less") : koIconName("format-indent-more")), i18n("Increase Indent"), this);
+#endif
     addAction("increaseIndentation", action);
     connect(action, SIGNAL(triggered(bool)), this, SLOT(increaseIndentation()));
     action->setToolTip(i18n("Increase the indentation"));
 
-    action = new QAction(QIcon::fromTheme(QGuiApplication::isRightToLeft() ? koIconName("format-indent-more") : koIconName("format-indent-less")), i18n("Decrease Indent"), this);
+#ifdef QT_WIDGETS_LIB
+    action = new QAction(QIcon/*AFA ::fromTheme*/(QGuiApplication::isRightToLeft() ? koIconName("format-indent-more") : koIconName("format-indent-less")), i18n("Decrease Indent"), this);
+#else
+    action = new QAction(/*AFA QIcon::fromTheme*/(QGuiApplication::isRightToLeft() ? koIconName("format-indent-more") : koIconName("format-indent-less")), i18n("Decrease Indent"), this);
+#endif
     addAction("decreaseIndentation", action);
     connect(action, SIGNAL(triggered(bool)), this, SLOT(decreaseIndentation()));
     action->setToolTip(i18n("Decrease the indentation"));
@@ -905,7 +920,9 @@ CellToolBase::CellToolBase(KoCanvasBase* canvas)
 
 CellToolBase::~CellToolBase()
 {
+#ifdef QT_WIDGETS_LIB
     delete d->formulaDialog;
+#endif
     delete d->popupListChoose;
     delete d->cellEditor;
     qDeleteAll(d->popupMenuActions);
@@ -1480,8 +1497,13 @@ bool CellToolBase::createEditor(bool clear, bool focus, bool captureArrows)
         const Style style = cell.effectiveStyle();
         QPalette editorPalette(d->cellEditor->palette());
         QColor color = style.fontColor();
+#ifdef QT_WIDGETS_LIB
         if (!color.isValid())
             color = canvas()->canvasWidget()->palette().text().color();
+#else
+        if (!color.isValid())
+            color = qApp->palette().text().color();
+#endif
         editorPalette.setColor(QPalette::Text, color);
         color = style.backgroundColor();
         if (!color.isValid())
@@ -1495,17 +1517,30 @@ bool CellToolBase::createEditor(bool clear, bool focus, bool captureArrows)
 
         const QRectF rect(xpos + 0.5, ypos + 0.5, w - 0.5, h - 0.5); //needed to circumvent rounding issue with height/width
         const QRectF zoomedRect = canvas()->viewConverter()->documentToView(rect);
+#ifdef QT_WIDGETS_LIB
         d->cellEditor->setGeometry(zoomedRect.toRect().adjusted(1, 1, -1, -1));
         d->cellEditor->setMinimumSize(QSize((int)canvas()->viewConverter()->documentToViewX(min_w) - 1,
                                        (int)canvas()->viewConverter()->documentToViewY(min_h) - 1));
         d->cellEditor->show();
+#else
+        //AFA-FIXME
+//        d->cellEditor->setGeometry(zoomedRect.toRect().adjusted(1, 1, -1, -1));
+//        d->cellEditor->setMinimumSize(QSize((int)canvas()->viewConverter()->documentToViewX(min_w) - 1,
+//                                       (int)canvas()->viewConverter()->documentToViewY(min_h) - 1));
+//        d->cellEditor->show();
+#endif
 
         // Laurent 2001-12-05
         // Don't add focus when we create a new editor and
         // we select text in edit widget otherwise we don't delete
         // selected text.
+#ifdef QT_WIDGETS_LIB
         if (focus)
             d->cellEditor->setFocus();
+#else
+        if (focus)
+            d->cellEditor->setFocus(true);
+#endif
 
         // clear the selection rectangle
         selection()->update();
@@ -1551,15 +1586,21 @@ void CellToolBase::deleteEditor(bool saveChanges, bool expandMatrix)
         return;
     }
     const QString userInput = d->cellEditor->toPlainText();
+#ifdef QT_WIDGETS_LIB
     d->cellEditor->hide();
+#else
+    d->cellEditor->setVisible(false);
+#endif
     // Delete the cell editor first and after that update the document.
     // That means we get a synchronous repaint after the cell editor
     // widget is gone. Otherwise we may get painting errors.
     delete d->cellEditor;
     d->cellEditor = 0;
 
+#ifdef QT_WIDGETS_LIB
     delete d->formulaDialog;
     d->formulaDialog = 0;
+#endif
 
     if (saveChanges) {
         applyUserInput(userInput, expandMatrix);
@@ -1570,7 +1611,11 @@ void CellToolBase::deleteEditor(bool saveChanges, bool expandMatrix)
         d->externalEditor->applyAction()->setEnabled(false);
         d->externalEditor->cancelAction()->setEnabled(false);
     }
+#ifdef QT_WIDGETS_LIB
     canvas()->canvasWidget()->setFocus();
+#else
+    canvas()->canvasWidget()->setFocus(true);
+#endif
 }
 
 void CellToolBase::activeSheetChanged(Sheet* sheet)
@@ -1585,11 +1630,19 @@ void CellToolBase::activeSheetChanged(Sheet* sheet)
         return;
     }
     if (editor()) {
+#ifdef QT_WIDGETS_LIB
         if (selection()->originSheet() != selection()->activeSheet()) {
             editor()->widget()->hide();
         } else {
             editor()->widget()->show();
         }
+#else
+        if (selection()->originSheet() != selection()->activeSheet()) {
+            editor()->widget()->setVisible(false);
+        } else {
+            editor()->widget()->setVisible(true);
+        }
+#endif
     }
     focusEditorRequested();
 }
@@ -1614,6 +1667,7 @@ void CellToolBase::focusEditorRequested()
     }
     // If we are in editing mode, we redirect the focus to the CellEditor or ExternalEditor.
     // This screws up <Tab> though (David)
+#ifdef QT_WIDGETS_LIB
     if (selection()->originSheet() != selection()->activeSheet()) {
         // Always focus the external editor, if not on the origin sheet.
         if (d->externalEditor) d->externalEditor->setFocus();
@@ -1625,6 +1679,19 @@ void CellToolBase::focusEditorRequested()
             if (d->externalEditor) d->externalEditor->setFocus();
         }
     }
+#else
+    if (selection()->originSheet() != selection()->activeSheet()) {
+        // Always focus the external editor, if not on the origin sheet.
+        if (d->externalEditor) d->externalEditor->setFocus(true);
+    } else {
+        // Focus the last active editor, if on the origin sheet.
+        if (d->lastEditorWithFocus == EmbeddedEditor) {
+            editor()->widget()->setFocus(true);
+        } else {
+            if (d->externalEditor) d->externalEditor->setFocus(true);
+        }
+    }
+#endif
 }
 
 void CellToolBase::applyUserInput(const QString &userInput, bool expandMatrix)
@@ -1670,9 +1737,11 @@ void CellToolBase::sheetProtectionToggled(bool protect)
 
 void CellToolBase::cellStyle()
 {
+#ifdef QT_WIDGETS_LIB
     QPointer<CellFormatDialog> dialog = new CellFormatDialog(canvas()->canvasWidget(), selection());
     dialog->exec();
     delete dialog;
+#endif
 }
 
 void CellToolBase::setDefaultStyle()
@@ -1714,6 +1783,7 @@ void CellToolBase::setStyle(const QString& stylename)
 
 void CellToolBase::createStyleFromCell()
 {
+#ifdef QT_WIDGETS_LIB
     QPoint p(selection()->marker());
     Cell cell = Cell(selection()->activeSheet(), p.x(), p.y());
 
@@ -1751,6 +1821,7 @@ void CellToolBase::createStyleFromCell()
     //AFA QStringList functionList(static_cast<KSelectAction*>(action("setStyle"))->items());
     //AFA functionList.push_back(styleName);
     //AFA static_cast<KSelectAction*>(action("setStyle"))->setItems(functionList);
+#endif
 }
 
 void CellToolBase::bold(bool enable)
@@ -1824,7 +1895,11 @@ void CellToolBase::font(const QString& font)
         editor()->setEditorFont(style.font(), true, canvas()->viewConverter());
         focusEditorRequested();
     } else {
+#ifdef QT_WIDGETS_LIB
         canvas()->canvasWidget()->setFocus();
+#else
+        canvas()->canvasWidget()->setFocus(true);
+#endif
     }
 }
 
@@ -1842,7 +1917,11 @@ void CellToolBase::fontSize(int size)
         editor()->setEditorFont(cell.style().font(), true, canvas()->viewConverter());
         focusEditorRequested();
     } else {
+#ifdef QT_WIDGETS_LIB
         canvas()->canvasWidget()->setFocus();
+#else
+        canvas()->canvasWidget()->setFocus(true);
+#endif
     }
 }
 
@@ -2867,12 +2946,14 @@ void CellToolBase::specialChar(QChar character, const QString& fontName)
 
 void CellToolBase::insertFormula()
 {
+#ifdef QT_WIDGETS_LIB
     if (! d->formulaDialog) {
         if (! createEditor())
             return;
         d->formulaDialog = new FormulaDialog(canvas()->canvasWidget(), selection(), editor());
     }
     d->formulaDialog->show(); // dialog deletes itself later
+#endif
 }
 
 void CellToolBase::insertFromDatabase()
@@ -3045,11 +3126,19 @@ void CellToolBase::edit()
     }
 
     // Switch focus.
+#ifdef QT_WIDGETS_LIB
     if (editor()->widget()->hasFocus()) {
         if (d->externalEditor) d->externalEditor->setFocus();
     } else {
         editor()->widget()->setFocus();
     }
+#else
+    if (editor()->widget()->hasFocus()) {
+        if (d->externalEditor) d->externalEditor->setFocus(true);
+    } else {
+        editor()->widget()->setFocus(true);
+    }
+#endif
 }
 
 void CellToolBase::cut()
@@ -3603,9 +3692,11 @@ void CellToolBase::listChoosePopupMenu()
         }
     }
 
+#ifdef QT_WIDGETS_LIB
     for (QStringList::ConstIterator it = itemList.constBegin(); it != itemList.constEnd(); ++it) {
         d->popupListChoose->addAction((*it));
     }
+#endif
 
     if (itemList.isEmpty()) {
         return;
@@ -3623,6 +3714,7 @@ void CellToolBase::listChoosePopupMenu()
         tx = canvas()->canvasWidget()->width() - tx;
     }
 
+#ifdef QT_WIDGETS_LIB
     QPoint p((int)tx, (int)ty);
     QPoint p2 = canvas()->canvasWidget()->mapToGlobal(p);
 
@@ -3631,6 +3723,8 @@ void CellToolBase::listChoosePopupMenu()
     }
 
     d->popupListChoose->popup(p2);
+#endif
+
     connect(d->popupListChoose, SIGNAL(triggered(QAction*)),
             this, SLOT(listChooseItemSelected(QAction*)));
 }

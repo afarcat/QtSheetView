@@ -43,11 +43,9 @@
 #include "CellView.h"
 
 // Qt
-#include <QApplication>
 #include <QColor>
 #include <QPainter>
 #include <QRectF>
-#include <QStyleOptionComboBox>
 #include <QTextLayout>
 #include <QTextCursor>
 #include <QAbstractTextDocumentLayout>
@@ -60,7 +58,13 @@
 // KF5
 //AFA #include <kcolorutils.h>
 #include <QLocale>
+#ifdef QT_WIDGETS_LIB
+#include <QApplication>
 #include <QPrinter>
+#include <QStyleOptionComboBox>
+#else
+#include <QGuiApplication>
+#endif
 
 // Calligra
 #include <KoPostscriptPaintDevice.h>
@@ -364,7 +368,7 @@ bool CellView::hitTestFilterButton(const Cell& cell, const QRect& cellRect, cons
 {
     if (!d->filterButton)
         return false;
-
+#ifdef QT_WIDGETS_LIB
     QStyleOptionComboBox options;
     options.direction = cell.sheet()->layoutDirection();
     options.editable = true;
@@ -374,6 +378,9 @@ bool CellView::hitTestFilterButton(const Cell& cell, const QRect& cellRect, cons
 //     options.subControls = QStyle::SC_ComboBoxEditField | QStyle::SC_ComboBoxArrow;
 
     return QApplication::style()->hitTestComplexControl(QStyle::CC_ComboBox, &options, position) == QStyle::SC_ComboBoxArrow;
+#else
+    return false;
+#endif
 }
 
 // ================================================================
@@ -417,20 +424,26 @@ void CellView::paintCellContents(const QRectF& /*paintRect*/, QPainter& painter,
         return;
 
     // 0. Paint possible filter button
+#ifdef QT_WIDGETS_LIB
     if (d->filterButton && !dynamic_cast<QPrinter*>(painter.device()))
         paintFilterButton(painter, coordinate, cell, sheetView);
+#endif
 
     // 1. Paint possible comment indicator.
+#ifdef QT_WIDGETS_LIB
     if (!dynamic_cast<QPrinter*>(painter.device()))
 #ifdef ENABLE_PRINT
             || cell.sheet()->printSettings()->printCommentIndicator())
 #endif
+#endif
         paintCommentIndicator(painter, coordinate, cell);
 
     // 2. Paint possible formula indicator.
+#ifdef QT_WIDGETS_LIB
     if (!dynamic_cast<QPrinter*>(painter.device()))
 #ifdef ENABLE_PRINT
             || cell.sheet()->printSettings()->printFormulaIndicator())
+#endif
 #endif
     {
         paintFormulaIndicator(painter, coordinate, cell);
@@ -445,7 +458,11 @@ void CellView::paintCellContents(const QRectF& /*paintRect*/, QPainter& painter,
     //  b) something indicates that the text should not be painted
     //  c) the sheet is protected and the cell is hidden.
     if (!d->displayText.isEmpty()
-            && (!dynamic_cast<QPrinter*>(painter.device()) || style().printText())
+            && (
+#ifdef QT_WIDGETS_LIB
+                !dynamic_cast<QPrinter*>(painter.device()) ||
+#endif
+                style().printText())
             && !(cell.sheet()->isProtected()
                  && style().hideAll())) {
         paintText(painter, coordinate, cell);
@@ -552,8 +569,10 @@ void CellView::paintCellBorders(const QRectF& paintRegion, QPainter& painter, co
 
     // If we print pages, then we disable clipping, otherwise borders are
     // cut in the middle at the page borders.
+#ifdef QT_WIDGETS_LIB
     if (dynamic_cast<QPrinter*>(painter.device()))
         painter.setClipping(false);
+#endif
 
     // Paint the borders if this cell is not part of another merged cell.
     if (!d->merged) {
@@ -561,8 +580,10 @@ void CellView::paintCellBorders(const QRectF& paintRegion, QPainter& painter, co
     }
 
     // Turn clipping back on.
+#ifdef QT_WIDGETS_LIB
     if (dynamic_cast<QPrinter*>(painter.device()))
         painter.setClipping(true);
+#endif
 
     // 3. Paint diagonal lines and page borders.
     paintCellDiagonalLines(painter, coordinate);
@@ -642,7 +663,11 @@ void CellView::paintDefaultBorders(QPainter& painter, const QRegion &clipRegion,
 
     --Robert Knight (robertknight@gmail.com)
     */
+#ifdef QT_WIDGETS_LIB
     const bool paintingToExternalDevice = dynamic_cast<QPrinter*>(painter.device());
+#else
+    const bool paintingToExternalDevice = false;
+#endif
 
     const int col = cell.column();
     const int row = cell.row();
@@ -858,7 +883,11 @@ void CellView::paintDefaultBorders(QPainter& painter, const QRegion &clipRegion,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             line = QLineF(qMax(paintRect.left(),   coordinate.x() + d->width),
                           qMax(paintRect.top(),    coordinate.y() + dt),
                           qMin(paintRect.right(),  coordinate.x() + d->width),
@@ -893,7 +922,11 @@ void CellView::paintDefaultBorders(QPainter& painter, const QRegion &clipRegion,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             line = QLineF(qMax(paintRect.left(),   coordinate.x() + dl),
                           qMax(paintRect.top(),    coordinate.y() + d->height),
                           qMin(paintRect.right(),  coordinate.x() + d->width - dr),
@@ -924,7 +957,11 @@ void CellView::paintCommentIndicator(QPainter& painter,
             && d->width > 10.0
             && d->height > 10.0
             && (false /*AFA cell.sheet()->printSettings()->printCommentIndicator()*/
+#ifdef QT_WIDGETS_LIB
                 || (!dynamic_cast<QPrinter*>(painter.device()) && cell.sheet()->getShowCommentIndicator()))) {
+#else
+                || (true && cell.sheet()->getShowCommentIndicator()))) {
+#endif
         QColor penColor = Qt::red;
 
         // If background has high red part, switch to blue.
@@ -1042,7 +1079,11 @@ void CellView::paintMoreTextIndicator(QPainter& painter, const QPointF& coordina
     // Show a red triangle when it's not possible to write all text in cell.
     // Don't print the red triangle if we're printing.
     if (!d->fittingWidth &&
+#ifdef QT_WIDGETS_LIB
             !dynamic_cast<QPrinter*>(painter.device()) &&
+#else
+            true &&
+#endif
             d->height > 4.0  &&
             d->width  > 4.0) {
         QColor penColor = Qt::red;
@@ -1089,7 +1130,11 @@ void CellView::paintText(QPainter& painter,
     QColor textColorPrint = d->style.fontColor();
     // Resolve the text color if invalid (=default).
     if (!textColorPrint.isValid()) {
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device()))
+#else
+        if (false)
+#endif
             textColorPrint = Qt::black;
         else
             textColorPrint = QGuiApplication::palette().text().color();
@@ -1264,8 +1309,10 @@ void CellView::paintPageBorders(QPainter& painter, const QPointF& coordinate,
                                 Borders paintBorder, const Cell& cell) const
 {
     // Not screen?  Return immediately.
+#ifdef QT_WIDGETS_LIB
     if (dynamic_cast<QPrinter*>(painter.device()))
         return;
+#endif
 
     if (! cell.sheet()->isShowPageOutline())
         return;
@@ -1384,7 +1431,11 @@ void CellView::paintCustomBorders(QPainter& painter, const QRectF& paintRect,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             if (coordinate.x() >= paintRect.left() + left_penWidth / 2)
                 line = QLineF(coordinate.x() ,
                               qMax(paintRect.top(), coordinate.y()),
@@ -1403,7 +1454,11 @@ void CellView::paintCustomBorders(QPainter& painter, const QRectF& paintRect,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             // Only print the right border if it is visible.
             if (coordinate.x() + d->width <= paintRect.right() + right_penWidth / 2)
                 line = QLineF(coordinate.x() + d->width,
@@ -1425,7 +1480,11 @@ void CellView::paintCustomBorders(QPainter& painter, const QRectF& paintRect,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             if (coordinate.y() >= paintRect.top() + top_penWidth / 2)
                 line = QLineF(qMax(paintRect.left(),   coordinate.x()),
                               coordinate.y(),
@@ -1446,7 +1505,11 @@ void CellView::paintCustomBorders(QPainter& painter, const QRectF& paintRect,
 
         // If we are on paper printout, we limit the length of the lines.
         // On paper, we always have full cells, on screen not.
+#ifdef QT_WIDGETS_LIB
         if (dynamic_cast<QPrinter*>(painter.device())) {
+#else
+        if (false) {
+#endif
             if (coordinate.y() + d->height <= paintRect.bottom() + bottom_penWidth / 2)
                 line = QLineF(qMax(paintRect.left(),   coordinate.x()),
                               coordinate.y() + d->height,
@@ -1484,6 +1547,7 @@ void CellView::paintCellDiagonalLines(QPainter& painter, const QPointF& coordina
 void CellView::paintFilterButton(QPainter& painter, const QPointF& coordinate,
                                  const Cell& cell, SheetView* sheetView) const
 {
+#ifdef QT_WIDGETS_LIB
     Q_UNUSED(cell);
     QStyleOptionComboBox options;
     options.direction = cell.sheet()->layoutDirection();
@@ -1498,6 +1562,7 @@ void CellView::paintFilterButton(QPainter& painter, const QPointF& coordinate,
                   sheetView->viewConverter()->viewToDocumentY(1.0));
     QApplication::style()->drawComplexControl(QStyle::CC_ComboBox, &options, &painter);
     painter.restore();
+#endif
 }
 
 

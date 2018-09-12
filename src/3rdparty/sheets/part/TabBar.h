@@ -1,4 +1,4 @@
-/* This file is part of the KDE project
+﻿/* This file is part of the KDE project
    Copyright (C) 2003 Ariya Hidayat <ariya@kde.org>
    Copyright (C) 2003 Norbert Andres <nandres@web.de>
    Copyright (C) 2002 Laurent Montel <montel@kde.org>
@@ -25,7 +25,12 @@
 #ifndef TABBAR_H
 #define TABBAR_H
 
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#else
+#include <sheetqml_ui.h>
+#endif
+
 #include <QStringList>
 #include <QMouseEvent>
 #include <QWheelEvent>

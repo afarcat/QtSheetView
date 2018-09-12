@@ -62,17 +62,20 @@
 #include <QEvent>
 #include <QFocusEvent>
 #include <QKeyEvent>
-#include <QLabel>
 #include <QList>
-#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPixmap>
 #include <QPoint>
-#include <QScrollBar>
 #include <QTextStream>
+
+#ifdef QT_WIDGETS_LIB
+#include <QLabel>
+#include <QMenu>
+#include <QScrollBar>
 #include <QToolTip>
+#endif
 
 // Calligra
 #include <KoCanvasWidget.h>
@@ -142,6 +145,11 @@ CanvasBase::~CanvasBase()
 Doc* CanvasBase::doc() const
 {
     return d->doc;
+}
+
+void CanvasBase::setDoc(Doc *doc)
+{
+    d->doc = doc;
 }
 
 void CanvasBase::gridSize(qreal* horizontal, qreal* vertical) const
@@ -791,9 +799,11 @@ void CanvasBase::showToolTip(const QPoint& p)
         tipText += "</p><h4>" + i18n("Comment:") + "</h4><p>" + cell.comment().replace('<', "&lt;");
 
     // Now we show the tip
+#ifdef QT_WIDGETS_LIB
     QToolTip::showText(mapToGlobal(cellRect.bottomRight()),
                        "<p>" + tipText.replace('\n', "<br>") + "</p>");
                        // TODO XXX this, cellRect.translated(-mapToGlobal(cellRect.topLeft())));
+#endif
 }
 
 void CanvasBase::updateInputMethodInfo()

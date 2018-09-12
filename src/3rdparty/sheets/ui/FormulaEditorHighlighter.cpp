@@ -26,7 +26,9 @@
 
 // Qt
 #include <QGuiApplication>
+#ifdef QT_WIDGETS_LIB
 #include <QTextEdit>
+#endif
 
 using namespace Calligra::Sheets;
 

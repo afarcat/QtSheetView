@@ -27,7 +27,11 @@
 #include "KoViewConverter.h"
 
 #include <QKeyEvent>
+
+#ifdef QT_WIDGETS_LIB
 #include <QScrollBar>
+#endif
+
 //AFA #include <FlakeDebug.h>
 
 KoPanTool::KoPanTool(KoCanvasBase *canvas)
@@ -79,6 +83,7 @@ void KoPanTool::keyPressEvent(QKeyEvent *event)
         return;
     }
     switch (event->key()) {
+#ifdef QT_WIDGETS_LIB
         case Qt::Key_Up:
             m_controller->pan(QPoint(0, -canvasControllerWidget->verticalScrollBar()->singleStep()));
             break;
@@ -91,6 +96,9 @@ void KoPanTool::keyPressEvent(QKeyEvent *event)
         case Qt::Key_Right:
             m_controller->pan(QPoint(canvasControllerWidget->horizontalScrollBar()->singleStep(), 0));
             break;
+#else
+    //AFA-FIXME
+#endif
     }
     event->accept();
 }

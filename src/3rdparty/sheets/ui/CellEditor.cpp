@@ -42,17 +42,20 @@
 #include <KoDpi.h>
 #include <KoUnit.h>
 #include <KoViewConverter.h>
-// KF5
-#include <qtextedit.h>
 
 // Qt
 #include <QFocusEvent>
 #include <QKeyEvent>
+#include <QStringListModel>
+#include <QList>
+#include <QFontMetrics>
+
+#ifdef QT_WIDGETS_LIB
+#include <QTextEdit>
 #include <QCompleter>
 #include <QAbstractItemView>
-#include <QStringListModel>
 #include <QScrollBar>
-#include <QList>
+#endif
 
 using namespace Calligra::Sheets;
 
@@ -63,11 +66,13 @@ public:
     Selection*                selection;
     KTextEdit*                textEdit;
     FormulaEditorHighlighter* highlighter;
-    FunctionCompletion*       functionCompletion;
     QTimer*                   functionCompletionTimer;
     QHash<int, QString>       *wordCollection;
     QPoint globalCursorPos;
+#ifdef QT_WIDGETS_LIB
+    FunctionCompletion*       functionCompletion;
     QCompleter                *complete;
+#endif
     bool captureAllKeyEvents : 1;
     bool selectionChangedLocked     : 1;
     int currentToken;
@@ -253,21 +258,29 @@ CellEditor::CellEditor(CellToolBase *cellTool,QHash<int,QString> &wordList, QWid
     d->currentToken = 0;
     d->wordCollection = &wordList;
 
+#ifdef QT_WIDGETS_LIB
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setFrameStyle(QFrame::NoFrame);
     setLineWidth(0);
     document()->setDocumentMargin(0);
     // setMinimumHeight(fontMetrics().height());
+#endif
 
     d->highlighter = new FormulaEditorHighlighter(this, d->selection);
 
+#ifdef QT_WIDGETS_LIB
     d->functionCompletion = new FunctionCompletion(this);
     d->functionCompletionTimer = new QTimer(this);
+#endif
 
     const Cell cell(d->selection->activeSheet(), d->selection->marker());
     const bool wrapText = cell.style().wrapText();
+#ifdef QT_WIDGETS_LIB
     d->textEdit->setWordWrapMode(wrapText ? QTextOption::WordWrap : QTextOption::NoWrap);
+#else
+    d->textEdit->setWrapMode(wrapText ? QQuickTextEdit::WordWrap : QQuickTextEdit::NoWrap);
+#endif
 
 #if 0 // FIXME Implement a completion aware KTextEdit.
     setCompletionMode(selection()->view()->doc()->completionMode());
@@ -277,13 +290,14 @@ CellEditor::CellEditor(CellToolBase *cellTool,QHash<int,QString> &wordList, QWid
     //populateWordCollection();
     
     //AutoCompletion Code
+#ifdef QT_WIDGETS_LIB
     d->complete = new QCompleter(this);
     d->complete->setModel(model());
     //completer->setModelSorting(QCompleter::CaseInsensitivelySortedModel);
     d->complete->setCaseSensitivity(Qt::CaseInsensitive);
     d->complete->setWrapAround(false);
     this->setCompleter(d->complete);
-    
+#endif
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(slotCursorPositionChanged()));
     connect(this, SIGNAL(textChanged()), this, SLOT(slotTextChanged()));
 }
@@ -320,19 +334,24 @@ void CellEditor::setCaptureArrowKeys(bool capture)
 
 QAbstractItemModel *CellEditor::model()
 {
-  //ValueConverter *conv;
-  QList<QString> words;
-  QList<QString> wordlist;
-  const Cell cell(d->selection->activeSheet(), d->selection->marker());
-  int col = cell.column();
-  words = d->wordCollection->values(col);
-  for (int i = 0; i < 3 && (!words.isEmpty()) ; i++) {
-    wordlist.push_back(words.front());
-    words.pop_front();
-  }
+    //ValueConverter *conv;
+#ifdef QT_WIDGETS_LIB
+    QList<QString> words;
+    QList<QString> wordlist;
+    const Cell cell(d->selection->activeSheet(), d->selection->marker());
+    int col = cell.column();
+    words = d->wordCollection->values(col);
+    for (int i = 0; i < 3 && (!words.isEmpty()) ; i++) {
+        wordlist.push_back(words.front());
+        words.pop_front();
+    }
     return new QStringListModel(wordlist, d->complete);
+#else
+    return nullptr;
+#endif
 }
 
+#ifdef QT_WIDGETS_LIB
 void CellEditor::setCompleter(QCompleter *completer)
 {
      if (d->complete)
@@ -354,9 +373,11 @@ QCompleter *CellEditor::completer() const
 {
      return d->complete;
 }
+#endif
 
  void CellEditor::insertCompletion(const QString& completion)
 {
+#ifdef QT_WIDGETS_LIB
      if (d->complete->widget() != this)
          return;
      QTextCursor tc = textCursor();
@@ -365,6 +386,7 @@ QCompleter *CellEditor::completer() const
      tc.movePosition(QTextCursor::EndOfWord);
      tc.insertText(completion.right(extra));
      setTextCursor(tc);
+#endif
 }
 
 QString CellEditor::textUnderCursor() const
@@ -384,7 +406,9 @@ void CellEditor::slotCursorPositionChanged()
     // before TextEdit::textChanged(). The text is already up-to-date.
 
     // Save the global position for the function auto-completion popup.
+#ifdef QT_WIDGETS_LIB
     d->globalCursorPos = mapToGlobal(cursorRect().bottomLeft());
+#endif
 
     // Needs up-to-date tokens; QSyntaxHighlighter::rehighlight() gets called
     // automatically on text changes, which does the update.
@@ -473,7 +497,9 @@ void CellEditor::slotTextChanged()
     // before TextEdit::textChanged().
 
     // Fix the position.
+#ifdef QT_WIDGETS_LIB
     verticalScrollBar()->setValue(1);
+#endif
 
     const QString text = toPlainText();
 
@@ -603,7 +629,9 @@ void CellEditor::selectionChanged()
     d->highlighter->resetRangeChanged();
     // Mirror the behaviour of slotCursorPositionChanged(), but here the tokens
     // are already up-to-date.
+#ifdef QT_WIDGETS_LIB
     d->globalCursorPos = mapToGlobal(cursorRect().bottomLeft());
+#endif
     // Set the active sub-region.
     // Needs up-to-date tokens; QSyntaxHighlighter::rehighlight() gets called
     // automatically on text changes, which does the update.
@@ -656,7 +684,8 @@ void CellEditor::keyPressEvent(QKeyEvent *event)
 	event->ignore(); // pass to parent
         return;
     }
-    
+
+#ifdef QT_WIDGETS_LIB
     if (d->complete && d->complete->popup()->isVisible()) {
          // The following keys are forwarded by the completer to the widget
         switch (event->key()) {
@@ -696,13 +725,15 @@ void CellEditor::keyPressEvent(QKeyEvent *event)
      QRect cr = cursorRect();
      cr.setWidth(d->complete->popup()->sizeHintForColumn(0) + d->complete->popup()->verticalScrollBar()->sizeHint().width());
      d->complete->complete(); // pop it up! 
-    
+#endif
 }
 
 void CellEditor::focusInEvent(QFocusEvent *event)
 {
+#ifdef QT_WIDGETS_LIB
     if (d->complete)
          d->complete->setWidget(this);
+#endif
      KTextEdit::focusInEvent(event);
     // If the focussing is user induced.
     if (event->reason() != Qt::OtherFocusReason) {

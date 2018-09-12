@@ -27,7 +27,9 @@
 //AFA #include "KoShapeController.h"
 #include <QMap>
 #include <QHash>
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#endif
 #include <QString>
 #include <QSet>
 #include <QPointer>

@@ -26,7 +26,9 @@
 #include <QHash>
 
 #include <QKeySequence>
+#ifdef QT_WIDGETS_LIB
 #include <QAction>
+#endif
 
 #include "KoInputDevice.h"
 #include "KoToolManager.h"

@@ -33,8 +33,11 @@
 #define CALLIGRA_SHEETS_CANVAS
 
 #include <QList>
-#include <QWidget>
 #include <QVariant>
+
+#ifdef QT_WIDGETS_LIB
+#include <QWidget>
+#endif
 
 #include <KoCanvasBase.h>
 
@@ -78,10 +81,11 @@ class CALLIGRA_SHEETS_COMMON_EXPORT Canvas : public QWidget, public CanvasBase
     Q_OBJECT
 
 public:
-    explicit Canvas(View* view);
+    explicit Canvas(View* view = nullptr);
     ~Canvas();
 
     View* view() const;
+    void setView(View *view);   //AFA
 
     /// reimplemented method from KoCanvasBase
     virtual QWidget* canvasWidget() {
@@ -138,26 +142,46 @@ protected:
     }
 
 public:
+#ifdef QT_WIDGETS_LIB
     virtual void update() {
         QWidget::update();
     }
     virtual void update(const QRectF& rect) {
         QWidget::update(rect.toRect());
     }
+#else
+    virtual void update();
+    virtual void update(const QRectF& rect);
+#endif
+
     virtual Qt::LayoutDirection layoutDirection() const {
+#ifdef QT_WIDGETS_LIB
         return QWidget::layoutDirection();
+#else
+        return Qt::LeftToRight;
+#endif
     }
     virtual QRectF rect() const {
+#ifdef QT_WIDGETS_LIB
         return QWidget::rect();
+#else
+        return QRectF(position(), size());
+#endif
     }
     virtual QSizeF size() const {
         return QWidget::size();
     }
     virtual QPoint mapToGlobal(const QPointF& point) const {
+#ifdef QT_WIDGETS_LIB
         return QWidget::mapToGlobal(point.toPoint());
+#else
+        return QWidget::mapToGlobal(point).toPoint();
+#endif
     }
     virtual void updateMicroFocus() {
+#ifdef QT_WIDGETS_LIB
         QWidget::updateMicroFocus();
+#endif
     }
 
     virtual KoZoomHandler* zoomHandler() const;

@@ -48,21 +48,23 @@
 //AFA #include <KLocalizedString>
 
 // Qt
-#include <QWidget>
 #include <QEvent>
 #include <QWheelEvent>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QTabletEvent>
 #include <QKeyEvent>
-#include <QVBoxLayout>
 #include <QStringList>
-#include <QGuiApplication>
-#include <QAction>
 #include <QKeySequence>
 #include <QStack>
-#include <QLabel>
 #include <QGlobalStatic>
+#ifdef QT_WIDGETS_LIB
+#include <QApplication>
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QAction>
+#include <QLabel>
+#endif
 
 Q_GLOBAL_STATIC(KoToolManager, s_instance)
 
@@ -447,7 +449,7 @@ void KoToolManager::Private::postSwitchTool(bool temporary)
 
     QList<QPointer<QWidget> > optionWidgetList = canvasData->activeTool->optionWidgets();
     if (optionWidgetList.empty()) { // no option widget.
-        QWidget *toolWidget;
+        QWidget *toolWidget = nullptr;  //AFA
         QString title;
         foreach(ToolHelper *tool, tools) {
             if (tool->id() == canvasData->activeTool->toolId()) {
@@ -455,6 +457,7 @@ void KoToolManager::Private::postSwitchTool(bool temporary)
                 break;
             }
         }
+#ifdef QT_WIDGETS_LIB
         toolWidget = canvasData->dummyToolWidget;
         if (toolWidget == 0) {
             toolWidget = new QWidget();
@@ -469,6 +472,7 @@ void KoToolManager::Private::postSwitchTool(bool temporary)
         }
         canvasData->dummyToolLabel->setText(i18n("Active tool: %1").arg(title));
         optionWidgetList.append(toolWidget);
+#endif
     }
 
     // Activate the actions for the currently active tool
@@ -826,8 +830,10 @@ KoToolManager::KoToolManager()
     : QObject(),
     d(new Private(this))
 {
-    connect(QGuiApplication::instance(), SIGNAL(focusChanged(QWidget*,QWidget*)),
+#ifdef QT_WIDGETS_LIB
+    connect(QApplication::instance(), SIGNAL(focusChanged(QWidget*,QWidget*)),
             this, SLOT(movedFocus(QWidget*,QWidget*)));
+#endif
 }
 
 KoToolManager::~KoToolManager()

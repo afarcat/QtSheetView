@@ -26,7 +26,10 @@
 
 #include "flake_export.h"
 
+#ifdef QT_WIDGETS_LIB
 #include <QAbstractScrollArea>
+#endif
+
 #include <QPointer>
 
 class KoShape;
@@ -56,6 +59,22 @@ public:
 
     /// Reimplemented from QObject
     virtual bool eventFilter(QObject *watched, QEvent *event);
+
+#ifndef QT_WIDGETS_LIB
+    void paint(QPainter *painter);
+
+    void hoverMoveEvent(QHoverEvent *event);
+
+    void ensureVisible(int x, int y, int xmargin = 50, int ymargin = 50);
+
+    QWidget *viewport() const;
+    void setViewport(QWidget *viewport);
+
+    QQuickFlickable *flickable() const;
+
+    QQuickScrollBar *horizontalScrollBar() const;
+    QQuickScrollBar *verticalScrollBar() const;
+#endif
 
 public:
     /**

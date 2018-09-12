@@ -75,6 +75,7 @@ public:
     ~CanvasBase();
 
     Doc* doc() const;
+    void setDoc(Doc *doc); //AFA
 
     // KoCanvasBase interface methods.
     /// reimplemented method from KoCanvasBase

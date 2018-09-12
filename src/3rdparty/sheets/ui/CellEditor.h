@@ -23,13 +23,15 @@
 #define CALLIGRA_SHEETS_CELL_EDITOR
 
 //AFA #include <KCompletion>
-#include <qtextedit.h>
+#ifdef QT_WIDGETS_LIB
+#include <QTextEdit>
+#include <QCompleter>
+#endif
 #define KTextEdit QTextEdit
 
 #include "sheets_common_export.h"
 #include "CellEditorBase.h"
 
-#include <QCompleter>
 #include <QAbstractItemModel>
 #include <QThread>
 #include <QHash>
@@ -99,8 +101,10 @@ public Q_SLOTS:
      * is placed. It is only active, if a formula is edited.
      */
     void permuteFixation();
+#ifdef QT_WIDGETS_LIB
     void setCompleter(QCompleter *c);
     QCompleter *completer() const;
+#endif
 
 private Q_SLOTS:
     void  slotTextChanged();

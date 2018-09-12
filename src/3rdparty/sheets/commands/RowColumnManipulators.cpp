@@ -23,7 +23,9 @@
 #include <float.h>
 
 #include <QFontMetricsF>
+#ifdef QT_WIDGETS_LIB
 #include <QWidget>
+#endif
 #include <QPen>
 
 //AFA #include <KLocalizedString>
@@ -451,8 +453,18 @@ bool AdjustColumnRowManipulator::postProcessing()
     return AbstractRegionCommand::postProcessing();
 }
 
+#ifdef QT_WIDGETS_LIB
 class DummyWidget : public QWidget
+#else
+class DummyWidget : public QPaintDevice
+#endif
 {
+#ifndef QT_WIDGETS_LIB
+    QPaintEngine *paintEngine() const {
+        return 0;
+    }
+#endif
+
     int metric(PaintDeviceMetric metric) const {
         switch (metric) {
         case QPaintDevice::PdmDpiX:
@@ -463,7 +475,11 @@ class DummyWidget : public QWidget
         default:
             break;
         }
+#ifdef QT_WIDGETS_LIB
         return QWidget::metric(metric);
+#else
+        return QPaintDevice::metric(metric);
+#endif
     }
 };
 

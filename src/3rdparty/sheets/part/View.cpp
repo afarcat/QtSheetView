@@ -29,7 +29,9 @@
 
 // Local
 #include "View.h"
+#ifdef QT_WIDGETS_LIB
 #include "TabBar.h"
+#endif
 
 // standard C/C++ includes
 #include <assert.h>
@@ -42,26 +44,30 @@
 #include <QClipboard>
 #include <QCursor>
 #include <QEvent>
-#include <QFrame>
-#include <QGridLayout>
-#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QList>
-#include <QMenu>
 #include <QPixmap>
 #include <QResizeEvent>
-#include <QToolButton>
 #ifndef QT_NO_SQL
 #include <QSqlDatabase>
 #endif
+#include <QTimer>
+#include <QGuiApplication>
+#include <QFontMetrics>
+
+#ifdef QT_WIDGETS_LIB
+#include <QFrame>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QMenu>
+#include <QToolButton>
 #include <QSizePolicy>
 #include <QScrollBar>
 #include <QStatusBar>
 #include <QInputDialog>
-#include <QTimer>
 #include <QStyle>
 #include <QLabel>
-#include <QGuiApplication>
+#endif
 
 // KF5 includes
 //AFA #include <kactioncollection.h>
@@ -171,6 +177,30 @@ class ViewActions;
 class Q_DECL_HIDDEN View::Private
 {
 public:
+    //AFA
+    Private() {
+        view = nullptr;
+        doc = nullptr;
+        activeSheet = nullptr;
+
+        canvas = nullptr;
+        canvasWidget = nullptr;
+        zoomHandler = nullptr;
+        rowHeader = nullptr;
+        columnHeader = nullptr;
+        selectAllButton = nullptr;
+        horzScrollBar = nullptr;
+        vertScrollBar = nullptr;
+        tabBar = nullptr;
+
+        loading = false;
+
+        actions = nullptr;
+        selection = nullptr;
+        scrollTimer = nullptr;
+    }
+
+public:
     View* view;
     Doc* doc;
 
@@ -182,8 +212,10 @@ public:
 
     // GUI elements
     //AFA QWidget *frame;
+#ifdef QT_WIDGETS_LIB
     CellToolBar *cellToolBar; //AFA
     CellEditorWidget *cellEditorWidget; //AFA
+#endif
     Canvas *canvas;
     KoCanvasWidget* canvasWidget;
     //AFA KoZoomController* zoomController;
@@ -193,11 +225,14 @@ public:
     SelectAllButtonWidget* selectAllButton;
     QScrollBar *horzScrollBar;
     QScrollBar *vertScrollBar;
+#ifdef QT_WIDGETS_LIB
     TabBar *tabBar;
     QLabel* calcLabel;
     QGridLayout* viewLayout;
     QGridLayout* tabScrollBarLayout;
-
+#else
+    QWidget *tabBar;
+#endif
     // all UI actions
     ViewActions* actions;
     KActionCollection actionCollection;
@@ -290,7 +325,7 @@ public:
 void View::Private::initActions()
 {
     actions = new ViewActions;
-
+#ifdef QT_WIDGETS_LIB
     //AFA
     actions->open = new QAction(koIcon("document-open"), i18n("Open document"), view);
     actions->open->setIconText(i18n("Open document"));
@@ -319,6 +354,7 @@ void View::Private::initActions()
     actionCollection["editRedo"] = actions->redo;
     connect(actions->redo, SIGNAL(triggered(bool)), doc->undoStack(), SLOT(redo()));
     connect(doc->undoStack(), SIGNAL(canRedoChanged(bool)), actions->redo, SLOT(setEnabled(bool)));
+#endif
 
 #ifdef ENABLE_GUI
     KActionCollection* ac = view->actionCollection();
@@ -649,8 +685,10 @@ View::View(/*AFA KoPart *part, */QWidget *_parent, Doc *_doc)
     // of the KoCanvasWidget.
     connect(doc(), SIGNAL(updateView()),
             this, SLOT(update()));
-    connect(doc(), SIGNAL(updateView()),
-            d->canvas, SLOT(update()));
+    if (d->canvas) {
+        connect(doc(), SIGNAL(updateView()),
+                d->canvas, SLOT(update()));
+    }
     connect(doc()->map(), SIGNAL(sheetAdded(Sheet*)),
             this, SLOT(addSheet(Sheet*)));
     connect(doc()->map(), SIGNAL(sheetRemoved(Sheet*)),
@@ -681,9 +719,12 @@ View::View(/*AFA KoPart *part, */QWidget *_parent, Doc *_doc)
     d->scrollTimer = new QTimer(this);
     connect(d->scrollTimer, SIGNAL(timeout()), this, SLOT(slotAutoScroll()));
 
+#ifdef QT_WIDGETS_LIB
     initialPosition();
-
     d->canvas->setFocus();
+#else
+    setFlag(ItemHasContents);
+#endif
 }
 
 View::~View()
@@ -693,8 +734,10 @@ View::~View()
     // if (d->calcLabel) disconnect(d->calcLabel,SIGNAL(pressed(int)),this,SLOT(statusBarClicked(int)));
 
     //AFA
+#ifdef QT_WIDGETS_LIB
     d->cellToolBar->unsetCanvas();
     d->cellEditorWidget->unsetCanvas();
+#endif
 
     d->selection->emitCloseEditor(false);
     d->selection->endReferenceSelection(false);
@@ -711,7 +754,9 @@ View::~View()
 
     delete d->selection;
     d->selection = 0;
+#ifdef QT_WIDGETS_LIB
     delete d->calcLabel;
+#endif
     delete d->actions;
     delete d->zoomHandler;
 
@@ -754,6 +799,7 @@ KActionCollection *View::actionCollection()
 
 void View::initView()
 {
+#ifdef QT_WIDGETS_LIB
     d->viewLayout = new QGridLayout(this);
     d->viewLayout->setMargin(0);
     d->viewLayout->setSpacing(0);
@@ -917,6 +963,27 @@ void View::initView()
             d->canvas, SLOT(setDocumentOffset(QPoint)));
     //AFA connect(d->canvas->shapeManager(), SIGNAL(selectionChanged()),
     //AFA         this, SLOT(shapeSelectionChanged()));
+#else
+    // Setup the selection.
+    d->selection = new Selection(d->canvas);
+    connect(d->selection, SIGNAL(changed(Region)), this, SLOT(slotChangeSelection(Region)));
+    connect(d->selection, SIGNAL(changed(Region)), this, SLOT(slotScrollChoice(Region)));
+    connect(d->selection, SIGNAL(aboutToModify(Region)), this, SLOT(aboutToModify(Region)));
+    connect(d->selection, SIGNAL(modified(Region)), this, SLOT(refreshSelection(Region)));
+    connect(d->selection, SIGNAL(visibleSheetRequested(Sheet*)), this, SLOT(setActiveSheet(Sheet*)));
+    connect(d->selection, SIGNAL(refreshSheetViews()), this, SLOT(refreshSheetViews()));
+    connect(d->selection, SIGNAL(updateAccessedCellRange(Sheet*,QPoint)), this, SLOT(updateAccessedCellRange(Sheet*,QPoint)));
+    connect(this, SIGNAL(documentReadWriteToggled(bool)),
+            d->selection, SIGNAL(documentReadWriteToggled(bool)));
+    connect(this, SIGNAL(sheetProtectionToggled(bool)),
+            d->selection, SIGNAL(sheetProtectionToggled(bool)));
+
+    // Load the Calligra Sheets Tools
+    ToolRegistry::instance()->loadTools();
+
+    // Setup the zoom controller.
+    d->zoomHandler = new KoZoomHandler();
+#endif
 }
 
 Canvas* View::canvasWidget() const
@@ -1203,7 +1270,9 @@ void View::initialPosition()
             if (sheet) {
                 sheet->setHidden(false);
                 QString tabName = sheet->sheetName();
+#ifdef QT_WIDGETS_LIB
                 d->tabBar->addTab(tabName);
+#endif
             }
         }
     }
@@ -1214,8 +1283,16 @@ void View::initialPosition()
     if (loadingInfo->fileFormat() == LoadingInfo::NativeFormat) {
         const QPoint offset = zoomHandler()->documentToView(loadingInfo->scrollingOffsets()[sheet]).toPoint();
         d->canvas->setDocumentOffset(offset);
+#ifdef QT_WIDGETS_LIB
         d->horzScrollBar->setValue(offset.x());
         d->vertScrollBar->setValue(offset.y());
+#else
+        QQuickFlickable *flickable = d->canvasWidget->flickable();
+        if (flickable) {
+            flickable->setContentX(offset.x());
+            flickable->setContentY(offset.y());
+        }
+#endif
         // Set the initial position for the marker as stored in the XML file,
         // (1,1) otherwise
         const QPoint marker = loadingInfo->cursorPositions()[sheet];
@@ -1229,7 +1306,11 @@ void View::initialPosition()
 
     initConfig();
 
+#ifdef QT_WIDGETS_LIB
     d->canvas->setFocus();
+#else
+    d->canvas->setFocus(true);
+#endif
 
     QTimer::singleShot(50, this, SLOT(finishLoading()));
 }
@@ -1268,7 +1349,9 @@ void View::updateReadWrite(bool readwrite)
     }
     d->actions->showPageOutline->setEnabled(true);
 #endif
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setReadOnly(doc()->map()->isProtected());
+#endif
 }
 
 void View::createTemplate()
@@ -1282,8 +1365,10 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
     // It can happen that our tabBar->activeTab() is not in sync with our activeSheet() if
     // setActiveSheet() was previously called before the delayed View::initialPosition()
     // was called and had a change to proper TabBar::setTabs().
+#ifdef QT_WIDGETS_LIB
     if (sheet == d->activeSheet && (!sheet || d->tabBar->activeTab() == sheet->sheetName()))
         return;
+#endif
 
     if (d->activeSheet != 0 && !d->selection->referenceSelectionMode()) {
         selection()->emitCloseEditor(true); // save changes
@@ -1313,8 +1398,10 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
     if (!oldSheet || oldSheet->layoutDirection() != d->activeSheet->layoutDirection()) {
         // Propagate the layout direction to the canvas and horz. scrollbar.
         const Qt::LayoutDirection direction = d->activeSheet->layoutDirection();
+#ifdef QT_WIDGETS_LIB
         d->canvas->setLayoutDirection(direction);
         d->horzScrollBar->setLayoutDirection(direction);
+#endif
         // Replace the painting strategy for painting shapes.
 #ifdef ENABLE_SHAPE
         KoShapeManager *const shapeManager = d->canvas->shapeManager();
@@ -1338,8 +1425,16 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
     if (it3 != d->savedOffsets.constEnd()) {
         const QPoint offset = zoomHandler()->documentToView(*it3).toPoint();
         d->canvas->setDocumentOffset(offset);
+#ifdef QT_WIDGETS_LIB
         d->horzScrollBar->setValue(offset.x());
         d->vertScrollBar->setValue(offset.y());
+#else
+        QQuickFlickable *flickable = d->canvasWidget->flickable();
+        if (flickable) {
+            flickable->setContentX(offset.x());
+            flickable->setContentY(offset.y());
+        }
+#endif
     }
 
     // tell the resource manager of the newly active page
@@ -1353,7 +1448,9 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
 
     // Prevents an endless loop, if called by the TabBar.
     if (updateSheet) {
+#ifdef QT_WIDGETS_LIB
         d->tabBar->setActiveTab(d->activeSheet->sheetName());
+#endif
     }
 
     if (d->selection->referenceSelectionMode()) {
@@ -1424,7 +1521,9 @@ void View::moveSheet(unsigned sheet, unsigned target)
     else
         doc()->map()->moveSheet(vs[ sheet ], vs[ target ], true);
 
+#ifdef QT_WIDGETS_LIB
     d->tabBar->moveTab(sheet, target);
+#endif
 }
 
 void View::sheetProperties()
@@ -1556,8 +1655,10 @@ void View::hideSheet()
     KUndo2Command* command = new HideSheetCommand(activeSheet());
     doc()->addCommand(command);
 
+#ifdef QT_WIDGETS_LIB
     d->tabBar->removeTab(d->activeSheet->sheetName());
     d->tabBar->setActiveTab(sn);
+#endif
 }
 
 void View::showSheet()
@@ -1599,6 +1700,7 @@ void View::toggleProtectDoc(bool mode)
     if (!doc() || !doc()->map())
         return;
 
+#ifdef QT_WIDGETS_LIB
     bool success;
     if (mode) {
         success = doc()->map()->showPasswordDialog(this, ProtectableObject::Lock,
@@ -1613,10 +1715,13 @@ void View::toggleProtectDoc(bool mode)
 #endif
         return;
     }
+#endif
 
     doc()->setModified(true);
     //AFA stateChanged("map_is_protected", mode ? StateNoReverse : StateReverse);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setReadOnly(doc()->map()->isProtected());
+#endif
 }
 
 void View::toggleProtectSheet(bool mode)
@@ -1624,6 +1729,7 @@ void View::toggleProtectSheet(bool mode)
     if (!d->activeSheet)
         return;
 
+#ifdef QT_WIDGETS_LIB
     bool success;
     if (mode) {
         success = activeSheet()->showPasswordDialog(this, ProtectableObject::Lock,
@@ -1638,6 +1744,7 @@ void View::toggleProtectSheet(bool mode)
 #endif
         return;
     }
+#endif
 
     doc()->setModified(true);
     d->adjustActions(!mode);
@@ -1713,7 +1820,9 @@ void View::showStatusBar(bool enable)
 void View::showTabBar(bool enable)
 {
     doc()->map()->settings()->setShowTabBar(enable);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setVisible(enable);
+#endif
 }
 
 void View::optionsNotifications()
@@ -1738,8 +1847,10 @@ void View::nextSheet()
     }
     selection()->emitCloseEditor(true); // save changes
     setActiveSheet(t);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#endif
 }
 
 void View::previousSheet()
@@ -1751,8 +1862,10 @@ void View::previousSheet()
     }
     selection()->emitCloseEditor(true); // save changes
     setActiveSheet(t);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#endif
 }
 
 void View::firstSheet()
@@ -1764,8 +1877,10 @@ void View::firstSheet()
     }
     selection()->emitCloseEditor(true); // save changes
     setActiveSheet(t);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#endif
 }
 
 void View::lastSheet()
@@ -1777,8 +1892,10 @@ void View::lastSheet()
     }
     selection()->emitCloseEditor(true); // save changes
     setActiveSheet(t);
+#ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#endif
 }
 
 void View::keyPressEvent(QKeyEvent *event)
@@ -1821,10 +1938,22 @@ void View::setHeaderMinima()
     QFontMetricsF fm(font, 0);
     qreal h = fm.height() * 1.5;  //AFA-change
     qreal w = fm.width(QString::fromLatin1("99999")) + 6;   //AFA-change
+#ifdef QT_WIDGETS_LIB
     d->columnHeader->setMinimumHeight(qRound(h));
     d->rowHeader->setMinimumWidth(qRound(w));
     d->selectAllButton->setMinimumHeight(qRound(h));
     d->selectAllButton->setMinimumWidth(qRound(w));
+#else
+    if (d->columnHeader)
+        d->columnHeader->setImplicitHeight(qRound(h));
+    if (d->rowHeader)
+        d->rowHeader->setImplicitWidth(qRound(w));
+    if (d->selectAllButton) {
+        d->selectAllButton->setImplicitHeight(qRound(h));
+        d->selectAllButton->setImplicitWidth(qRound(w));
+    }
+    qDebug()<<"~~~~~~"<<d->selectAllButton->size()<<d->columnHeader->size()<<d->rowHeader->size()<<d->canvasWidget->size();
+#endif
 }
 
 void View::paperLayoutDlg()
@@ -1920,6 +2049,16 @@ void View::slotRename()
 #endif
 }
 
+#ifndef QT_WIDGETS_LIB
+void View::update()
+{
+    d->canvas->update();
+    d->columnHeader->update();
+    d->rowHeader->update();
+    d->selectAllButton->update();
+}
+#endif
+
 //------------------------------------------------
 //
 // Document signals
@@ -2010,9 +2149,10 @@ void View::calcStatusBarOp()
     QString res = doc()->map()->converter()->asString(val).asString();
     QString tmp;
     if (res.length()) tmp = prefix + res;
-
+#ifdef QT_WIDGETS_LIB
     if (d->calcLabel)
         d->calcLabel->setText(QString(' ') + tmp + ' ');
+#endif
 }
 
 void View::statusBarClicked(const QPoint&)
@@ -2047,6 +2187,73 @@ void View::menuCalc(bool)
 QWidget* View::canvas() const
 {
     return d->canvas;
+}
+
+void View::setCanvas(QWidget *canvas)
+{
+#ifndef QT_WIDGETS_LIB
+    if (d && d->canvas == canvas) {
+        return;
+    }
+
+    assert(canvas);
+
+    d->canvas = qobject_cast<Canvas *>(canvas);
+    d->selectAllButton = findChild<SelectAllButtonWidget *>("selectAll");
+    d->columnHeader = findChild<ColumnHeaderWidget *>("columnHeader");
+    d->rowHeader = findChild<RowHeaderWidget *>("rowHeader");
+    d->canvasWidget = findChild<KoCanvasWidget *>("canvasWidget");
+    d->tabBar = findChild<QWidget *>("tabBar");
+
+    QQuickScrollView *viewport = findChild<QQuickScrollView *>("scrollView");
+    if (viewport) {
+        d->canvasWidget->setViewport(viewport);
+
+        QQuickScrollBarAttached *attached = viewport->findChild<QQuickScrollBarAttached *>();
+        if (attached) {
+            d->horzScrollBar = attached->horizontal();
+            d->vertScrollBar = attached->vertical();
+        }
+    }
+
+    // Setup the Canvas and its controller.
+    d->canvas->setView(this);
+    d->selectAllButton->setCanvas(d->canvas);
+    d->columnHeader->setCanvas(d->canvas);
+    d->rowHeader->setCanvas(d->canvas);
+
+    if (d->canvasWidget) {
+        d->canvasWidget->setCanvas(d->canvas);
+        d->canvasWidget->setCanvasMode(KoCanvasWidget::Spreadsheet);
+
+        KoToolManager::instance()->addController(d->canvasWidget);
+        KoToolManager::instance()->registerTools(&d->actionCollection, d->canvasWidget);
+    }
+
+    connect(doc(), SIGNAL(updateView()),
+            d->canvas, SLOT(update()));
+
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->selectAllButton, SLOT(toolChanged(QString)));
+
+    connect(d->canvas, SIGNAL(documentSizeChanged(QSize)),
+            d->canvasWidget, SLOT(updateDocumentSize(QSize)));
+    connect(d->canvasWidget, SIGNAL(moveDocumentOffset(QPoint)),
+            d->canvas, SLOT(setDocumentOffset(QPoint)));
+
+    connect(this, SIGNAL(autoScroll(QPoint)),
+            d->columnHeader, SLOT(slotAutoScroll(QPoint)));
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->columnHeader, SLOT(toolChanged(QString)));
+
+    connect(this, SIGNAL(autoScroll(QPoint)),
+            d->rowHeader, SLOT(slotAutoScroll(QPoint)));
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->rowHeader, SLOT(toolChanged(QString)));
+
+    initialPosition();
+    d->canvas->setFocus(true);
+#endif
 }
 
 void View::popupTabBarMenu(const QPoint & _point)
@@ -2106,7 +2313,9 @@ void View::updateBorderButton()
 void View::addSheet(Sheet *sheet)
 {
     if (!sheet->isHidden()) {
+#ifdef QT_WIDGETS_LIB
         d->tabBar->addTab(sheet->sheetName());
+#endif
     }
     const bool state = (doc()->map()->visibleSheets().count() > 1);
 #ifdef ENABLE_GUI
@@ -2122,7 +2331,9 @@ void View::addSheet(Sheet *sheet)
 
 void View::removeSheet(Sheet *sheet)
 {
+#ifdef QT_WIDGETS_LIB
     d->tabBar->removeTab(sheet->sheetName());
+#endif
     setActiveSheet(doc()->map()->sheet(0));
 
     const bool state = (doc()->map()->visibleSheets().count() > 1);
@@ -2171,7 +2382,9 @@ void View::saveCurrentSheetSelection()
     if (d->activeSheet != 0) {
         d->savedAnchors.remove(d->activeSheet);
         d->savedAnchors.insert(d->activeSheet, d->selection->anchor());
+#ifdef QT_WIDGETS_LIB
         debugSheetsUI << " Current scrollbar vert value:" << d->vertScrollBar->value();
+#endif
         debugSheetsUI << "Saving marker pos:" << d->selection->marker();
         d->savedMarkers.remove(d->activeSheet);
         d->savedMarkers.insert(d->activeSheet, d->selection->marker());
@@ -2209,7 +2422,9 @@ void View::handleDamages(const QList<Damage*>& damages)
             debugSheetsDamage << *sheetDamage;
             const SheetDamage::Changes changes = sheetDamage->changes();
             if (changes & (SheetDamage::Name | SheetDamage::Shown)) {
+#ifdef QT_WIDGETS_LIB
                 d->tabBar->setTabs(doc()->map()->visibleSheets());
+#endif
                 paintMode = Everything;
             }
             if (changes & (SheetDamage::Shown | SheetDamage::Hidden)) {
@@ -2254,9 +2469,17 @@ void View::handleDamages(const QList<Damage*>& damages)
 
     // At last repaint the dirty cells.
     if (paintMode == Clipped) {
+#ifdef QT_WIDGETS_LIB
         canvas()->update(paintRegion);
+#else
+        d->canvasWidget->update(paintRegion.boundingRect());
+#endif
     } else if (paintMode == Everything) {
+#ifdef QT_WIDGETS_LIB
         canvas()->update();
+#else
+        d->canvasWidget->update();
+#endif
     }
 }
 
@@ -2298,7 +2521,7 @@ void View::slotAutoScroll()
 {
     QPoint scrollDistance;
     bool actuallyDoScroll = false;
-    QPoint pos(mapFromGlobal(QCursor::pos()));
+    QPointF pos(mapFromGlobal(QCursor::pos()));
 
     //Provide progressive scrolling depending on the mouse position
     if (pos.y() < topBorder()) {
@@ -2318,7 +2541,9 @@ void View::slotAutoScroll()
     }
 
     if (actuallyDoScroll) {
-        pos = canvas()->mapFrom(this, pos);
+#ifdef QT_WIDGETS_LIB
+        pos = canvas()->mapFrom(this, pos.toPoint());
+#endif
         QMouseEvent* event = new QMouseEvent(QEvent::MouseMove, pos, Qt::NoButton, Qt::NoButton,
                                              QGuiApplication::keyboardModifiers());
 

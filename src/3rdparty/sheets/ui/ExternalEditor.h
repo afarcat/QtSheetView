@@ -22,7 +22,9 @@
 #ifndef CALLIGRA_SHEETS_EXTERNAL_EDITOR
 #define CALLIGRA_SHEETS_EXTERNAL_EDITOR
 
-#include <qtextedit.h>
+#ifdef QT_WIDGETS_LIB
+#include <QTextEdit>
+#endif
 #define KTextEdit QTextEdit
 
 #include "sheets_common_export.h"

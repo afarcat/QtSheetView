@@ -61,18 +61,21 @@
 #include <QEvent>
 #include <QFocusEvent>
 #include <QKeyEvent>
-#include <QLabel>
 #include <QList>
-#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPixmap>
 #include <QPoint>
-#include <QScrollBar>
 #include <QTextStream>
+
+#ifdef QT_WIDGETS_LIB
+#include <QLabel>
+#include <QMenu>
+#include <QScrollBar>
 #include <QToolTip>
 #include <QWidget>
+#endif
 
 // KF5
 //AFA #include <kxmlguifactory.h>
@@ -133,22 +136,27 @@ Canvas::Canvas(View *view)
 {
     cd->view = view;
 
+#ifdef QT_WIDGETS_LIB
     setAttribute(Qt::WA_OpaquePaintEvent);
     setAttribute(Qt::WA_StaticContents);
     setBackgroundRole(QPalette::Base);
     QWidget::setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
 
-    installEventFilter(this);   // for TAB key processing, otherwise focus change
     setAcceptDrops(true);
     setAttribute(Qt::WA_InputMethodEnabled, true); // ensure using the InputMethod
+#endif
+
+    installEventFilter(this);   // for TAB key processing, otherwise focus change
 }
 
 Canvas::~Canvas()
 {
+#ifdef QT_WIDGETS_LIB
     foreach (QAction* action, actions()) {
         removeAction(action);
     }
+#endif
 
     delete cd;
 }
@@ -156,6 +164,13 @@ Canvas::~Canvas()
 View* Canvas::view() const
 {
     return cd->view;
+}
+
+void Canvas::setView(View *view)
+{
+    cd->view = view;
+
+    setDoc(view ? view->doc() : 0);
 }
 
 void Canvas::mousePressEvent(QMouseEvent* event)
@@ -191,8 +206,8 @@ void Canvas::mousePressEvent(QMouseEvent* event)
 #endif
 
     // flake
-    if(d->toolProxy) {
-        d->toolProxy->mousePressEvent(event, documentPosition);
+    if(CanvasBase::d->toolProxy) {
+        CanvasBase::d->toolProxy->mousePressEvent(event, documentPosition);
 
         if (!event->isAccepted() && event->button() == Qt::RightButton) {
             showContextMenu(origEvent->globalPos());
@@ -235,8 +250,8 @@ void Canvas::mouseReleaseEvent(QMouseEvent* event)
     }
 
     // flake
-    if(d->toolProxy) {
-        d->toolProxy->mouseReleaseEvent(event, documentPosition);
+    if(CanvasBase::d->toolProxy) {
+        CanvasBase::d->toolProxy->mouseReleaseEvent(event, documentPosition);
     }
 
     if (layoutDirection() == Qt::RightToLeft) {
@@ -260,8 +275,8 @@ void Canvas::mouseMoveEvent(QMouseEvent* event)
     }
 
     // flake
-    if(d->toolProxy) {
-        d->toolProxy->mouseMoveEvent(event, documentPosition);
+    if(CanvasBase::d->toolProxy) {
+        CanvasBase::d->toolProxy->mouseMoveEvent(event, documentPosition);
     }
 
     if (layoutDirection() == Qt::RightToLeft) {
@@ -285,7 +300,7 @@ void Canvas::mouseDoubleClickEvent(QMouseEvent* event)
     }
 
     // flake
-    if (d->toolProxy) {
+    if (CanvasBase::d->toolProxy) {
         // If the celltool is not active and the double click is on something that is not a flake element, we need
         // to reactivate the cell tool. Normally flake would handle this, but the main app is not a shape, so we have to.
         // TODO: figure out a way to make the flake's functionality work. It'd likely require turning the main app
@@ -298,13 +313,12 @@ void Canvas::mouseDoubleClickEvent(QMouseEvent* event)
             //AFA }
         }
 
-        d->toolProxy->mouseDoubleClickEvent(event, documentPosition);
+        CanvasBase::d->toolProxy->mouseDoubleClickEvent(event, documentPosition);
     }
 
     if (layoutDirection() == Qt::RightToLeft) {
         delete event;
     }
-
 }
 
 bool Canvas::event(QEvent *e)
@@ -317,9 +331,11 @@ bool Canvas::event(QEvent *e)
 
 void Canvas::paintEvent(QPaintEvent* event)
 {
+#ifdef QT_WIDGETS_LIB
     QPainter painter(this);
     paint(&painter, event->rect());
     event->accept();
+#endif
 }
 
 void Canvas::dragEnterEvent(QDragEnterEvent* event)
@@ -352,16 +368,52 @@ void Canvas::dropEvent(QDropEvent *event)
     }
 }
 
+#ifndef QT_WIDGETS_LIB
+void Canvas::update()
+{
+    if (view() && view()->canvasController()) {
+        view()->canvasController()->update();
+    }
+}
+
+void Canvas::update(const QRectF &rect)
+{
+    if (view() && view()->canvasController()) {
+        view()->canvasController()->update(rect.toRect());
+    }
+}
+#endif
+
 void Canvas::setVertScrollBarPos(qreal pos)
 {
+#ifdef QT_WIDGETS_LIB
     if (pos < 0) pos = view()->vertScrollBar()->maximum() - pos;
     view()->vertScrollBar()->setValue((int)pos);
+#else
+    if (view() && view()->canvasController()) {
+        QQuickFlickable *flickable = view()->canvasController()->flickable();
+        if (flickable) {
+            if (pos < 0) pos = flickable->contentHeight() - pos;
+            flickable->setContentY(pos);
+        }
+    }
+#endif
 }
 
 void Canvas::setHorizScrollBarPos(qreal pos)
 {
+#ifdef QT_WIDGETS_LIB
     if (pos < 0) pos = view()->horzScrollBar()->maximum() - pos;
     view()->horzScrollBar()->setValue((int)pos);
+#else
+    if (view() && view()->canvasController()) {
+        QQuickFlickable *flickable = view()->canvasController()->flickable();
+        if (flickable) {
+            if (pos < 0) pos = flickable->contentWidth() - pos;
+            flickable->setContentX(pos);
+        }
+    }
+#endif
 }
 
 KoZoomHandler* Canvas::zoomHandler() const

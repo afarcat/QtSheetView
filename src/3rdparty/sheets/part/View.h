@@ -33,14 +33,17 @@
 #include <QPoint>
 #include <QString>
 #include <QStringList>
-#include <QPrinter>
 
 #include <QPointF>
 #include <KoZoomMode.h>
 //AFA #include <KoView.h>
 //AFA #include <KoPart.h>
 
+#ifdef QT_WIDGETS_LIB
+#include <QPrinter>
 #include <QWidget>
+#endif
+
 #define KoView QWidget
 #define KoPart QObject
 #define KActionCollection QHash<QString, QAction *>
@@ -68,7 +71,11 @@ class Selection;
 class SheetView;
 class RowHeaderWidget;
 class View;
+#ifdef QT_WIDGETS_LIB
 class TabBar;
+#else
+#define TabBar QObject
+#endif
 
 /**
  * @class View
@@ -92,6 +99,10 @@ class TabBar;
 class CALLIGRA_SHEETS_COMMON_EXPORT View : public KoView
 {
     Q_OBJECT
+    //AFA: use for qml
+#ifndef QT_WIDGETS_LIB
+    Q_PROPERTY(QWidget *canvas READ canvas WRITE setCanvas)
+#endif
 
 public:
     /** Creates a new view displaying \p document and with \p parent as parent. */
@@ -336,6 +347,10 @@ protected Q_SLOTS:
     void slotRename();
 
 public Q_SLOTS:
+#ifndef QT_WIDGETS_LIB
+    void update();
+#endif
+
     /** Reacts on selection changes. */
     void slotChangeSelection(const Region&);
 
@@ -353,6 +368,9 @@ public Q_SLOTS:
 public: // reimplementations
     // KoView interface
     virtual QWidget *canvas() const;
+
+    /** \set the canvas of the view */
+    void setCanvas(QWidget *canvas);
 
 public:
     /**
