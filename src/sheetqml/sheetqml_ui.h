@@ -52,6 +52,7 @@ public:
     ~QQmlWidget();
 
 public:
+    void clearQmlWidget();
     QWidget *qmlWidget() const;
     void setQmlWidget(QWidget *qmlWidget);
 
@@ -96,7 +97,29 @@ class QComboBox : public QQmlWidget
 {
     Q_OBJECT
 public:
-    QComboBox(QWidget * parent = 0);
+    QComboBox(QWidget *parent = 0);
+
+public:
+    void attachQmlObject(QWidget *qmlObject);
+
+public:
+    void setEditable(bool editable);
+    void clear();
+    int count();
+    void setCurrentIndex(int index);
+    void insertItem(int index, const QString &text);
+    void removeItem(int index);
+    void setItemText(int index, const QString &text);
+    QString itemText(int index) const;
+    QString editText() const;
+    void setEditText(const QString &text);
+
+Q_SIGNALS:
+    void activated(int index);
+
+private:
+    QPointer<QQuickComboBox> m_qmlComboBox;
+    QStringList m_qmlComboBoxModel;
 };
 
 // -----------------------------------------------------------------------------
@@ -104,9 +127,17 @@ class QTextEdit : public QQmlWidget
 {
     Q_OBJECT
 public:
-    QTextEdit(QWidget * parent = 0);
+    QTextEdit(QWidget *parent = 0);
 
 public:
+    void attachQmlObject(QWidget *qmlObject);
+
+protected:
+      bool eventFilter(QObject *obj, QEvent *event);
+
+public:
+    bool hasFocus();
+
     void cut();
     void copy();
     void paste();
@@ -130,6 +161,13 @@ public:
     void setReadOnly(bool);
     void setWrapMode(QQuickTextEdit::WrapMode w);
     void setTextFormat(QQuickTextEdit::TextFormat format);
+
+Q_SIGNALS:
+    void textChanged();
+    void cursorPositionChanged();
+
+private:
+    QPointer<QQuickTextArea> m_qmlTextArea;
 };
 
 #endif

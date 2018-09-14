@@ -1523,11 +1523,11 @@ bool CellToolBase::createEditor(bool clear, bool focus, bool captureArrows)
                                        (int)canvas()->viewConverter()->documentToViewY(min_h) - 1));
         d->cellEditor->show();
 #else
-        //AFA-FIXME
-//        d->cellEditor->setGeometry(zoomedRect.toRect().adjusted(1, 1, -1, -1));
-//        d->cellEditor->setMinimumSize(QSize((int)canvas()->viewConverter()->documentToViewX(min_w) - 1,
-//                                       (int)canvas()->viewConverter()->documentToViewY(min_h) - 1));
-//        d->cellEditor->show();
+        QRect rc = zoomedRect.toRect().adjusted(1, 1, -1, -1);
+        d->cellEditor->setGeometry(rc.left(), rc.top(), rc.width(), rc.height());
+        //d->cellEditor->setMinimumSize(QSize((int)canvas()->viewConverter()->documentToViewX(min_w) - 1,
+        //                               (int)canvas()->viewConverter()->documentToViewY(min_h) - 1));
+        d->cellEditor->setVisible(true);
 #endif
 
         // Laurent 2001-12-05

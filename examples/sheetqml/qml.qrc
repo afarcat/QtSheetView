@@ -1,6 +1,5 @@
 ﻿<RCC>
     <qresource prefix="/">
         <file>resources/qml/main.qml</file>
-        <file>resources/qml/SheetPage.qml</file>
     </qresource>
 </RCC>

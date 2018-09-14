@@ -31,7 +31,9 @@
 
 // Qt
 #include <QKeyEvent>
+#ifdef QT_WIDGETS_LIB
 #include <QLineEdit>
+#endif
 
 using namespace Calligra::Sheets;
 
@@ -43,8 +45,13 @@ LocationComboBox::LocationComboBox(QWidget *_parent)
     //AFA setCompletionMode(KCompletion::CompletionAuto);
     setEditable(true);
 
+#ifdef QT_WIDGETS_LIB
     connect(this, SIGNAL(activated(QString)),
             this, SLOT(slotActivateItem()));
+#else
+    connect(this, SIGNAL(activated(int)),
+            this, SLOT(slotActivateItem()));
+#endif
 }
 
 void LocationComboBox::setSelection(Selection *selection)
@@ -126,7 +133,11 @@ void LocationComboBox::updateAddress()
     }
     setItemText(0, address);
     setCurrentIndex(0); //AFA
+#ifdef QT_WIDGETS_LIB
     lineEdit()->setText(address);
+#else
+    setEditText(address);
+#endif
 }
 
 void LocationComboBox::slotAddAreaName(const QString &_name)
@@ -176,9 +187,13 @@ bool LocationComboBox::activateItem()
     Selection *const selection = m_selection;
 
     // Set the focus back on the canvas.
+#ifdef QT_WIDGETS_LIB
     parentWidget()->setFocus();
-
     const QString text = lineEdit()->text();
+#else
+    const QString text = editText();
+#endif
+
     // check whether an already existing named area was entered
     Region region = selection->activeSheet()->map()->namedAreaManager()->namedArea(text);
     if (region.isValid()) {
@@ -254,7 +269,9 @@ void LocationComboBox::keyPressEvent(QKeyEvent * _ev)
     // Escape pressed, restore original value
     case Qt::Key_Escape:
         updateAddress();
+#ifdef QT_WIDGETS_LIB
         parentWidget()->setFocus();
+#endif
         _ev->accept(); // QKeyEvent
         break;
     default:

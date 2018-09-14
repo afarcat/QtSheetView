@@ -491,6 +491,7 @@ void CanvasBase::paint(QPainter* painter, const QRectF& painterRect)
 //     const QPointF p = -viewConverter()->documentToView(this->offset());
 //     painter.translate(p.x() /*+ width()*/, p.y());
     painter->setRenderHint(QPainter::Antialiasing, false);
+
     if(d->toolProxy)
         d->toolProxy->paint(*painter, *viewConverter());
 }

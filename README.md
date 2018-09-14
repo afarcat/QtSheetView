@@ -10,6 +10,10 @@ QtSheetView is based on Calligra Sheets, The aim is to provide a Qt component wi
 
 3. Small size: cutted Print and Shape and other not necessary function.
 
+## QtSheetQml
+
+QtSheetQml is the QML implementation of QtSheetView and does not depend on QtWidgets. It needs at least QtQuick.Controls 2.3 version support.
+
 ## Contributing Code
 
 QtSheetView is licensed same as Calligra. Please see the file COPYING for Calligra of licenses file.

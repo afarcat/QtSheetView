@@ -6,6 +6,7 @@
  * Copyright (C) 2007-2010 Boudewijn Rempt <boud@valdyas.org>
  * Copyright (C) 2007 C. Boemann <cbo@boemann.dk>
  * Copyright (C) 2006-2008 Jan Hambrecht <jaham@gmx.net>
+ * Copyright (C) 2018 afarcat <kabak@sina.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -59,7 +60,6 @@ void KoCanvasWidget::Private::setDocumentOffset()
 #ifdef QT_WIDGETS_LIB
     pt = QPoint(q->horizontalScrollBar()->value(), q->verticalScrollBar()->value());
     viewportWidget->documentOffsetMoved(pt);
-
     QWidget *canvasWidget = canvas->canvasWidget();
 
     if (canvasWidget) {
@@ -72,7 +72,7 @@ void KoCanvasWidget::Private::setDocumentOffset()
         }
     }
 #else
-    //AFA-FIXME
+    pt = q->scrollBarValue();
 #endif
 
     q->setDocumentOffset(pt);
@@ -355,7 +355,7 @@ int KoCanvasWidget::canvasOffsetX() const
 #else
     QQuickFlickable *flickable = this->flickable();
     if (flickable) {
-        return flickable->contentX();
+        return -flickable->contentX();
     }
     return 0;
 #endif
@@ -374,7 +374,7 @@ int KoCanvasWidget::canvasOffsetY() const
 #else
     QQuickFlickable *flickable = this->flickable();
     if (flickable) {
-        return flickable->contentY();
+        return -flickable->contentY();
     }
     return 0;
 #endif
@@ -395,6 +395,8 @@ void KoCanvasWidget::updateCanvasOffsetX()
         setPreferredCenterFractionX((flickable->contentX()
                                      + viewport()->width() / 2.0) / documentSize().width());
     }
+
+    d->setDocumentOffset();
 #endif
 }
 
@@ -413,6 +415,8 @@ void KoCanvasWidget::updateCanvasOffsetY()
         setPreferredCenterFractionY((flickable->contentY()
                                      + viewport()->height() / 2.0) / documentSize().height());
     }
+
+    d->setDocumentOffset();
 #endif
 }
 
@@ -430,13 +434,57 @@ bool KoCanvasWidget::eventFilter(QObject *watched, QEvent *event)
 void KoCanvasWidget::paint(QPainter *painter)
 {
     if (d->canvas && d->canvas->canvasWidget()) {
+        QPoint off(scrollBarValue());
+        setPosition(off); //keep sync with QQuickFlickable
+
         d->canvas->paint(painter, boundingRect());
+    }
+}
+
+void KoCanvasWidget::mousePressEvent(QMouseEvent *event)
+{
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        flickable->setInteractive(false);
+    }
+
+    if (d->canvas && d->canvas->canvasWidget()) {
+        d->canvas->mousePressEvent(event);
+    }
+}
+
+void KoCanvasWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (d->canvas && d->canvas->canvasWidget()) {
+        d->canvas->mouseMoveEvent(event);
+    }
+}
+
+void KoCanvasWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (d->canvas && d->canvas->canvasWidget()) {
+        d->canvas->mouseReleaseEvent(event);
+    }
+
+    QQuickFlickable *flickable = this->flickable();
+    if (flickable) {
+        flickable->setInteractive(true);
+    }
+}
+
+void KoCanvasWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (d->canvas && d->canvas->canvasWidget()) {
+        d->canvas->mouseDoubleClickEvent(event);
     }
 }
 
 void KoCanvasWidget::hoverMoveEvent(QHoverEvent *event)
 {
-
+    if (d->canvas && d->canvas->canvasWidget()) {
+        QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, event->modifiers());
+        d->canvas->mouseMoveEvent(&mouseEvent);
+    }
 }
 
 void KoCanvasWidget::ensureVisible(int x, int y, int xmargin, int ymargin)
@@ -470,8 +518,8 @@ void KoCanvasWidget::setViewport(QWidget *viewport)
 
     QQuickFlickable *flickable = this->flickable();
     if (flickable) {
-        connect(flickable, SIGNAL(contentXChanged()), this, SLOT(update()));
-        connect(flickable, SIGNAL(contentYChanged()), this, SLOT(update()));
+        connect(flickable, SIGNAL(contentXChanged()), this, SLOT(updateCanvasOffsetX()));
+        connect(flickable, SIGNAL(contentYChanged()), this, SLOT(updateCanvasOffsetY()));
     }
 }
 
@@ -769,8 +817,12 @@ void KoCanvasWidget::wheelEvent(QWheelEvent *event)
         zoomRelativeToPoint(event->pos(), zoomCoeff);
 
         event->accept();
-    } else
+    } else {
+#ifndef QT_WIDGETS_LIB
+        d->setDocumentOffset();
+#endif
         QAbstractScrollArea::wheelEvent(event);
+    }
 }
 
 void KoCanvasWidget::zoomRelativeToPoint(const QPoint &widgetPoint, qreal zoomCoeff)

@@ -164,11 +164,9 @@ void ExternalEditor::keyPressEvent(QKeyEvent *event)
             (event->key() == Qt::Key_Escape)) {
 #ifdef QT_WIDGETS_LIB
         d->cellTool->editor()->widget()->setFocus();
-#else
-        d->cellTool->editor()->widget()->setFocus(true);
-#endif
         QGuiApplication::sendEvent(d->cellTool->editor()->widget(), event);
         event->accept();
+#endif
         return;
     }
     // call inherited handler

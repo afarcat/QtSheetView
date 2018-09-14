@@ -10,6 +10,7 @@
    Copyright 1999-2001 Simon Hausmann <hausmann@kde.org>
    Copyright 1998-2000 Torben Weis <weis@kde.org>
    Copyright 2010 Boudewijn Rempt <boud@kogmbh.com>
+   Copyright (C) 2018 afarcat <kabak@sina.com>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -152,6 +153,9 @@
 #include "ui/PixmapCachingSheetView.h"
 #include "ui/CellEditorWidget.h"
 #include "ui/CellToolBar.h"
+#include "ui/CellToolBase.h"
+#include "ui/LocationComboBox.h"
+#include "ui/ExternalEditor.h"
 
 #ifdef ENABLE_PRINT
 #include "HeaderFooter.h"
@@ -198,6 +202,14 @@ public:
         actions = nullptr;
         selection = nullptr;
         scrollTimer = nullptr;
+
+#ifdef QT_WIDGETS_LIB
+        cellToolBar = nullptr;
+        cellEditorWidget = nullptr;
+#else
+        locationComboBox = nullptr;
+        externalEditor = nullptr;
+#endif
     }
 
 public:
@@ -231,7 +243,10 @@ public:
     QGridLayout* viewLayout;
     QGridLayout* tabScrollBarLayout;
 #else
-    QWidget *tabBar;
+    QPointer<QWidget> qmlRoot;
+    QPointer<QWidget> tabBar;
+    LocationComboBox *locationComboBox;
+    ExternalEditor *externalEditor;
 #endif
     // all UI actions
     ViewActions* actions;
@@ -1272,6 +1287,11 @@ void View::initialPosition()
                 QString tabName = sheet->sheetName();
 #ifdef QT_WIDGETS_LIB
                 d->tabBar->addTab(tabName);
+#else
+                if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "addTab", Qt::DirectConnection,
+                                              Q_ARG(QVariant, sheet->sheetName()))){
+                    debugSheetsUI << "addTab failed:" << sheet->sheetName();
+                }
 #endif
             }
         }
@@ -1368,6 +1388,14 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
 #ifdef QT_WIDGETS_LIB
     if (sheet == d->activeSheet && (!sheet || d->tabBar->activeTab() == sheet->sheetName()))
         return;
+#else
+    QVariant returnArg;
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "activeTab", Qt::DirectConnection,
+                                   Q_RETURN_ARG(QVariant, returnArg))){
+        debugSheetsUI << "activeTab failed";
+    }
+    if (sheet == d->activeSheet && (!sheet || returnArg.toString() == sheet->sheetName()))
+        return;
 #endif
 
     if (d->activeSheet != 0 && !d->selection->referenceSelectionMode()) {
@@ -1450,6 +1478,11 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
     if (updateSheet) {
 #ifdef QT_WIDGETS_LIB
         d->tabBar->setActiveTab(d->activeSheet->sheetName());
+#else
+        if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                      Q_ARG(QVariant, d->activeSheet->sheetName()))){
+            debugSheetsUI << "setActiveTab failed:" << d->activeSheet->sheetName();
+        }
 #endif
     }
 
@@ -1498,6 +1531,8 @@ void View::setActiveSheet(Sheet* sheet, bool updateSheet)
 
 void View::changeSheet(const QString& _name)
 {
+    if (!activeSheet() || _name.isEmpty())
+        return;
     if (activeSheet()->sheetName() == _name)
         return;
 
@@ -1523,6 +1558,12 @@ void View::moveSheet(unsigned sheet, unsigned target)
 
 #ifdef QT_WIDGETS_LIB
     d->tabBar->moveTab(sheet, target);
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "moveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, QVariant::fromValue(sheet)),
+                                  Q_ARG(QVariant, QVariant::fromValue(target)))){
+        debugSheetsUI << "moveTab failed";
+    }
 #endif
 }
 
@@ -1658,6 +1699,15 @@ void View::hideSheet()
 #ifdef QT_WIDGETS_LIB
     d->tabBar->removeTab(d->activeSheet->sheetName());
     d->tabBar->setActiveTab(sn);
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "removeTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, d->activeSheet->sheetName()))){
+        debugSheetsUI << "removeTab failed:" << d->activeSheet->sheetName();
+    }
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, sn))){
+        debugSheetsUI << "setActiveTab failed:" << sn;
+    }
 #endif
 }
 
@@ -1820,9 +1870,7 @@ void View::showStatusBar(bool enable)
 void View::showTabBar(bool enable)
 {
     doc()->map()->settings()->setShowTabBar(enable);
-#ifdef QT_WIDGETS_LIB
     d->tabBar->setVisible(enable);
-#endif
 }
 
 void View::optionsNotifications()
@@ -1850,6 +1898,15 @@ void View::nextSheet()
 #ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "setActiveTab failed:" << t->sheetName();
+    }
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "ensureVisible", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "ensureVisible failed:" << t->sheetName();
+    }
 #endif
 }
 
@@ -1865,6 +1922,15 @@ void View::previousSheet()
 #ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "setActiveTab failed:" << t->sheetName();
+    }
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "ensureVisible", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "ensureVisible failed:" << t->sheetName();
+    }
 #endif
 }
 
@@ -1880,6 +1946,15 @@ void View::firstSheet()
 #ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "setActiveTab failed:" << t->sheetName();
+    }
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "ensureVisible", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "ensureVisible failed:" << t->sheetName();
+    }
 #endif
 }
 
@@ -1895,6 +1970,15 @@ void View::lastSheet()
 #ifdef QT_WIDGETS_LIB
     d->tabBar->setActiveTab(t->sheetName());
     d->tabBar->ensureVisible(t->sheetName());
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "setActiveTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "setActiveTab failed:" << t->sheetName();
+    }
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "ensureVisible", Qt::DirectConnection,
+                                  Q_ARG(QVariant, t->sheetName()))){
+        debugSheetsUI << "ensureVisible failed:" << t->sheetName();
+    }
 #endif
 }
 
@@ -1952,7 +2036,9 @@ void View::setHeaderMinima()
         d->selectAllButton->setImplicitHeight(qRound(h));
         d->selectAllButton->setImplicitWidth(qRound(w));
     }
-    qDebug()<<"~~~~~~"<<d->selectAllButton->size()<<d->columnHeader->size()<<d->rowHeader->size()<<d->canvasWidget->size();
+
+    //force resize
+    geometryChanged(QRectF(), QRectF());
 #endif
 }
 
@@ -2050,12 +2136,129 @@ void View::slotRename()
 }
 
 #ifndef QT_WIDGETS_LIB
+void View::buildLayout(QWidget *qmlRoot)
+{
+    if (!qmlRoot) {
+        return;
+    }
+
+    d->qmlRoot = qmlRoot;
+    d->canvas = qmlRoot->findChild<Canvas *>("sheetCanvas");
+    d->selectAllButton = qmlRoot->findChild<SelectAllButtonWidget *>("selectAll");
+    d->columnHeader = qmlRoot->findChild<ColumnHeaderWidget *>("columnHeader");
+    d->rowHeader = qmlRoot->findChild<RowHeaderWidget *>("rowHeader");
+    d->canvasWidget = findChild<KoCanvasWidget *>("canvasWidget");
+    d->tabBar = qmlRoot->findChild<QWidget *>("tabBar");
+
+    QQuickScrollView *viewport = qmlRoot->findChild<QQuickScrollView *>("scrollView");
+    if (viewport) {
+        d->canvasWidget->setViewport(viewport);
+
+        QQuickScrollBarAttached *attached = viewport->findChild<QQuickScrollBarAttached *>();
+        if (attached) {
+            d->horzScrollBar = attached->horizontal();
+            d->vertScrollBar = attached->vertical();
+        }
+
+        QQuickFlickable *flickable = d->canvasWidget->flickable();
+        if (flickable) {
+            connect(flickable, SIGNAL(contentXChanged()), this, SLOT(update()));
+            connect(flickable, SIGNAL(contentYChanged()), this, SLOT(update()));
+        }
+    }
+
+    // Setup the Canvas and its controller.
+    d->canvas->setView(this);
+    d->selection->setCanvas(d->canvas);
+    d->selectAllButton->setCanvas(d->canvas);
+    d->columnHeader->setCanvas(d->canvas);
+    d->rowHeader->setCanvas(d->canvas);
+
+    if (d->canvasWidget) {
+        d->canvasWidget->setCanvas(d->canvas);
+        d->canvasWidget->setCanvasMode(KoCanvasWidget::Spreadsheet);
+
+        KoToolManager::instance()->addController(d->canvasWidget);
+        KoToolManager::instance()->registerTools(&d->actionCollection, d->canvasWidget);
+    }
+
+    // Setup CellEditorWidget
+    d->locationComboBox = new LocationComboBox(this);
+    d->locationComboBox->attachQmlObject(qmlRoot->findChild<QWidget *>("locationComboBox"));
+    d->locationComboBox->setSelection(d->selection);
+
+    d->externalEditor = new ExternalEditor(this);
+    d->externalEditor->attachQmlObject(qmlRoot->findChild<QWidget *>("externalEditor"));
+
+    QWidget * applyAction = qmlRoot->findChild<QWidget *>("applyAction");
+    applyAction->setProperty("action", QVariant::fromValue(d->externalEditor->applyAction()));
+
+    QWidget * cancelAction = qmlRoot->findChild<QWidget *>("cancelAction");
+    cancelAction->setProperty("action", QVariant::fromValue(d->externalEditor->cancelAction()));
+
+    connect(doc(), SIGNAL(updateView()),
+            d->canvas, SLOT(update()));
+
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            this, SLOT(toolChanged(QString)));
+
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->selectAllButton, SLOT(toolChanged(QString)));
+
+    connect(d->canvas, SIGNAL(documentSizeChanged(QSize)),
+            d->canvasWidget, SLOT(updateDocumentSize(QSize)));
+    connect(d->canvasWidget, SIGNAL(moveDocumentOffset(QPoint)),
+            d->canvas, SLOT(setDocumentOffset(QPoint)));
+
+    connect(this, SIGNAL(autoScroll(QPoint)),
+            d->columnHeader, SLOT(slotAutoScroll(QPoint)));
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->columnHeader, SLOT(toolChanged(QString)));
+
+    connect(this, SIGNAL(autoScroll(QPoint)),
+            d->rowHeader, SLOT(slotAutoScroll(QPoint)));
+    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
+            d->rowHeader, SLOT(toolChanged(QString)));
+
+    connect(d->tabBar, SIGNAL(tabChanged(QString)), this, SLOT(changeSheet(QString)));
+    //connect(d->tabBar, SIGNAL(tabMoved(unsigned,unsigned)),
+    //        this, SLOT(moveSheet(unsigned,unsigned)));
+    //connect(d->tabBar, SIGNAL(contextMenu(QPoint)),
+    //        this, SLOT(popupTabBarMenu(QPoint)));
+    //connect(d->tabBar, SIGNAL(doubleClicked()),
+    //        this, SLOT(slotRename()));
+
+    initialPosition();
+    d->canvas->setFocus(true);
+}
+
+void View::toolChanged(const QString &toolId)
+{
+    const bool isCellTool = toolId == QLatin1String("KSpreadCellToolId");
+
+    if (isCellTool) {
+        KoToolBase* tool = KoToolManager::instance()->toolById(d->canvas, toolId);
+        CellToolBase * cellTool = qobject_cast<CellToolBase*>(tool);
+        Q_ASSERT(cellTool);
+        d->externalEditor->setCellTool(cellTool);
+        cellTool->setExternalEditor(d->externalEditor);
+    }
+}
+
 void View::update()
 {
     d->canvas->update();
     d->columnHeader->update();
     d->rowHeader->update();
     d->selectAllButton->update();
+}
+
+void View::geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry)
+{
+    // fill parent
+    if (d->canvas) {
+        d->canvas->setSize(size());
+    }
 }
 #endif
 
@@ -2189,73 +2392,6 @@ QWidget* View::canvas() const
     return d->canvas;
 }
 
-void View::setCanvas(QWidget *canvas)
-{
-#ifndef QT_WIDGETS_LIB
-    if (d && d->canvas == canvas) {
-        return;
-    }
-
-    assert(canvas);
-
-    d->canvas = qobject_cast<Canvas *>(canvas);
-    d->selectAllButton = findChild<SelectAllButtonWidget *>("selectAll");
-    d->columnHeader = findChild<ColumnHeaderWidget *>("columnHeader");
-    d->rowHeader = findChild<RowHeaderWidget *>("rowHeader");
-    d->canvasWidget = findChild<KoCanvasWidget *>("canvasWidget");
-    d->tabBar = findChild<QWidget *>("tabBar");
-
-    QQuickScrollView *viewport = findChild<QQuickScrollView *>("scrollView");
-    if (viewport) {
-        d->canvasWidget->setViewport(viewport);
-
-        QQuickScrollBarAttached *attached = viewport->findChild<QQuickScrollBarAttached *>();
-        if (attached) {
-            d->horzScrollBar = attached->horizontal();
-            d->vertScrollBar = attached->vertical();
-        }
-    }
-
-    // Setup the Canvas and its controller.
-    d->canvas->setView(this);
-    d->selectAllButton->setCanvas(d->canvas);
-    d->columnHeader->setCanvas(d->canvas);
-    d->rowHeader->setCanvas(d->canvas);
-
-    if (d->canvasWidget) {
-        d->canvasWidget->setCanvas(d->canvas);
-        d->canvasWidget->setCanvasMode(KoCanvasWidget::Spreadsheet);
-
-        KoToolManager::instance()->addController(d->canvasWidget);
-        KoToolManager::instance()->registerTools(&d->actionCollection, d->canvasWidget);
-    }
-
-    connect(doc(), SIGNAL(updateView()),
-            d->canvas, SLOT(update()));
-
-    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
-            d->selectAllButton, SLOT(toolChanged(QString)));
-
-    connect(d->canvas, SIGNAL(documentSizeChanged(QSize)),
-            d->canvasWidget, SLOT(updateDocumentSize(QSize)));
-    connect(d->canvasWidget, SIGNAL(moveDocumentOffset(QPoint)),
-            d->canvas, SLOT(setDocumentOffset(QPoint)));
-
-    connect(this, SIGNAL(autoScroll(QPoint)),
-            d->columnHeader, SLOT(slotAutoScroll(QPoint)));
-    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
-            d->columnHeader, SLOT(toolChanged(QString)));
-
-    connect(this, SIGNAL(autoScroll(QPoint)),
-            d->rowHeader, SLOT(slotAutoScroll(QPoint)));
-    connect(d->canvas->toolProxy(), SIGNAL(toolChanged(QString)),
-            d->rowHeader, SLOT(toolChanged(QString)));
-
-    initialPosition();
-    d->canvas->setFocus(true);
-#endif
-}
-
 void View::popupTabBarMenu(const QPoint & _point)
 {
 #ifdef ENABLE_GUI
@@ -2315,6 +2451,11 @@ void View::addSheet(Sheet *sheet)
     if (!sheet->isHidden()) {
 #ifdef QT_WIDGETS_LIB
         d->tabBar->addTab(sheet->sheetName());
+#else
+        if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "addTab", Qt::DirectConnection,
+                                      Q_ARG(QVariant, sheet->sheetName()))){
+            debugSheetsUI << "addTab failed:" << sheet->sheetName();
+        }
 #endif
     }
     const bool state = (doc()->map()->visibleSheets().count() > 1);
@@ -2333,6 +2474,11 @@ void View::removeSheet(Sheet *sheet)
 {
 #ifdef QT_WIDGETS_LIB
     d->tabBar->removeTab(sheet->sheetName());
+#else
+    if (!QMetaObject::invokeMethod(d->qmlRoot.data(), "removeTab", Qt::DirectConnection,
+                                  Q_ARG(QVariant, sheet->sheetName()))){
+        debugSheetsUI << "removeTab failed:" << sheet->sheetName();
+    }
 #endif
     setActiveSheet(doc()->map()->sheet(0));
 
@@ -2424,6 +2570,7 @@ void View::handleDamages(const QList<Damage*>& damages)
             if (changes & (SheetDamage::Name | SheetDamage::Shown)) {
 #ifdef QT_WIDGETS_LIB
                 d->tabBar->setTabs(doc()->map()->visibleSheets());
+#else
 #endif
                 paintMode = Everything;
             }

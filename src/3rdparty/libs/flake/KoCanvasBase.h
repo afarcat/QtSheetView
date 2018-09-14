@@ -45,6 +45,7 @@ class KoGuidesData;
 
 class QWidget;
 class QPainter;
+class QMouseEvent;
 class QCursor;
 class QObject;
 class QPointF;
@@ -166,6 +167,10 @@ public:
 
     //AFA
     virtual void paint(QPainter* painter, const QRectF& painterRect) = 0;
+    virtual void mousePressEvent(QMouseEvent *event) = 0;
+    virtual void mouseMoveEvent(QMouseEvent *event) = 0;
+    virtual void mouseReleaseEvent(QMouseEvent *event) = 0;
+    virtual void mouseDoubleClickEvent(QMouseEvent *event) = 0;
 
     /**
      * Called when the user tries to move the argument shape to allow the application to limit the

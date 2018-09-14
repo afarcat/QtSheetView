@@ -1,4 +1,5 @@
 ﻿/* This file is part of the KDE project
+   Copyright (C) 2018 afarcat <kabak@sina.com>
    Copyright 2006 Robert Knight <robertknight@gmail.com>
    Copyright 2006 Inge Wallin <inge@lysator.liu.se>
    Copyright 2006 Stefan Nikolaus <stefan.nikolaus@kdemail.net>
@@ -261,7 +262,7 @@ void RowHeaderWidget::focusOutEvent(QFocusEvent * _ev)
 #ifndef QT_WIDGETS_LIB
 void RowHeaderWidget::hoverMoveEvent(QHoverEvent *event)
 {
-    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, event->modifiers());
     mouseMoveEvent(&mouseEvent);
 }
 #endif
@@ -464,7 +465,7 @@ void ColumnHeaderWidget::focusOutEvent(QFocusEvent * _ev)
 #ifndef QT_WIDGETS_LIB
 void ColumnHeaderWidget::hoverMoveEvent(QHoverEvent *event)
 {
-    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent mouseEvent(QEvent::MouseMove, event->pos(), Qt::NoButton, Qt::NoButton, event->modifiers());
     mouseMoveEvent(&mouseEvent);
 }
 #endif

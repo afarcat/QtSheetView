@@ -9,6 +9,7 @@
    Copyright 1999-2003 David Faure <faure@kde.org>
    Copyright 1999-2001 Simon Hausmann <hausmann@kde.org>
    Copyright 1998-2000 Torben Weis <weis@kde.org>
+   Copyright (C) 2018 afarcat <kabak@sina.com>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -99,10 +100,6 @@ class TabBar;
 class CALLIGRA_SHEETS_COMMON_EXPORT View : public KoView
 {
     Q_OBJECT
-    //AFA: use for qml
-#ifndef QT_WIDGETS_LIB
-    Q_PROPERTY(QWidget *canvas READ canvas WRITE setCanvas)
-#endif
 
 public:
     /** Creates a new view displaying \p document and with \p parent as parent. */
@@ -348,7 +345,11 @@ protected Q_SLOTS:
 
 public Q_SLOTS:
 #ifndef QT_WIDGETS_LIB
+    void buildLayout(QWidget *qmlRoot);
+    void toolChanged(const QString& toolId);
     void update();
+    void geometryChanged(const QRectF &newGeometry,
+                         const QRectF &oldGeometry);
 #endif
 
     /** Reacts on selection changes. */
@@ -368,9 +369,6 @@ public Q_SLOTS:
 public: // reimplementations
     // KoView interface
     virtual QWidget *canvas() const;
-
-    /** \set the canvas of the view */
-    void setCanvas(QWidget *canvas);
 
 public:
     /**

@@ -5,6 +5,7 @@
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle>
 
 #include <sheetqml_plugin.h>
 
@@ -15,6 +16,8 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     registerSheetQmlTypes();
+
+    QQuickStyle::setStyle("Material");
 
     QQmlApplicationEngine engine;
     engine.load(QUrl(QStringLiteral("qrc:/resources/qml/main.qml")));

@@ -144,6 +144,11 @@ KoCanvasBase* Selection::canvas() const
     return d->canvasBase;
 }
 
+void Selection::setCanvas(KoCanvasBase *canvasBase)
+{
+    d->canvasBase = canvasBase;
+}
+
 void Selection::initialize(const QPoint& point, Sheet* sheet)
 {
     if (!isValid(point))

@@ -73,6 +73,7 @@ HEADERS += \
     $$PWD/sheets/ui/ExternalEditor.h \
     $$PWD/sheets/ui/FormulaEditorHighlighter.h \
     $$PWD/sheets/ui/HyperlinkStrategy.h \
+    $$PWD/sheets/ui/LocationComboBox.h \
     $$PWD/sheets/ui/MergeStrategy.h \
     $$PWD/sheets/ui/PasteStrategy.h \
     $$PWD/sheets/ui/Selection.h \
@@ -199,6 +200,7 @@ SOURCES += \
     $$PWD/sheets/ui/ExternalEditor.cpp \
     $$PWD/sheets/ui/FormulaEditorHighlighter.cpp \
     $$PWD/sheets/ui/HyperlinkStrategy.cpp \
+    $$PWD/sheets/ui/LocationComboBox.cpp \
     $$PWD/sheets/ui/MergeStrategy.cpp \
     $$PWD/sheets/ui/PasteStrategy.cpp \
     $$PWD/sheets/ui/Selection.cpp \
@@ -258,8 +260,7 @@ HEADERS += \
     $$PWD/sheets/part/TabBar.h \
     $$PWD/sheets/ui/CellEditorWidget.h \
     $$PWD/sheets/ui/CellToolBar.h \
-    $$PWD/sheets/ui/FunctionCompletion.h \
-    $$PWD/sheets/ui/LocationComboBox.h
+    $$PWD/sheets/ui/FunctionCompletion.h
 
 SOURCES += \
     $$PWD/sheets/dialogs/FormulaDialog.cpp \
@@ -267,8 +268,7 @@ SOURCES += \
     $$PWD/sheets/part/TabBar.cpp \
     $$PWD/sheets/ui/CellEditorWidget.cpp \
     $$PWD/sheets/ui/CellToolBar.cpp \
-    $$PWD/sheets/ui/FunctionCompletion.cpp \
-    $$PWD/sheets/ui/LocationComboBox.cpp
+    $$PWD/sheets/ui/FunctionCompletion.cpp
 }
 
 ENABLE_BINDING {

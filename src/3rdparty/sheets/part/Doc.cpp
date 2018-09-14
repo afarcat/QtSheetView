@@ -178,7 +178,7 @@ Doc::~Doc()
 void Doc::initEmpty()
 {
     //AFA KSharedConfigPtr config = Factory::global().config();
-    const int page = 1; //AFA config->group("Parameters").readEntry("NbPage", 1);
+    const int page = 3; //AFA config->group("Parameters").readEntry("NbPage", 1);
 
     for (int i = 0; i < page; ++i)
         map()->addNewSheet();

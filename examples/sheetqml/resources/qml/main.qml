@@ -6,6 +6,9 @@
 import QtQuick 2.7
 import QtQuick.Window 2.2
 
+//AFA: SheetPage file in QtSheetQml
+import "qrc:/resources/qml"
+
 Window {
     visible: true
     width: Screen.width*0.75

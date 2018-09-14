@@ -14,7 +14,7 @@
 #ifdef QT_WIDGETS_LIB
 #define koIcon(name)        QIcon(QFile::exists(RESOURCES_IMAGES + name + ".svg") ? RESOURCES_IMAGES + name + ".svg" : "")
 #else
-#define koIcon(name)        QString(QFile::exists(RESOURCES_IMAGES + name + ".svg") ? RESOURCES_IMAGES + name + ".svg" : "")
+#define koIcon(name)        QString(QFile::exists(RESOURCES_IMAGES + name + ".svg") ? "qrc" + RESOURCES_IMAGES + name + ".svg" : "")
 
 #include <sheetqml_ui.h>
 #endif

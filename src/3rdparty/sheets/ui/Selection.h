@@ -85,6 +85,8 @@ public:
      */
     KoCanvasBase* canvas() const;
 
+    void setCanvas(KoCanvasBase* canvasBase); //AFA
+
     /**
      * Sets the selection to @p point
      * @param point the point's location
